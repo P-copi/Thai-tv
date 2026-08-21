@@ -1,0 +1,121 @@
+#EXTM3U
+
+# ==============================
+# 01 ฟรีทีวีไทย
+# ==============================
+
+#EXTINF:-1 tvg-id="Channel3.th" group-title="01 ฟรีทีวีไทย",01 ช่อง 3 HD
+https://ch3-33-web.cdn.byteark.com/live/playlist.m3u8
+
+#EXTINF:-1 tvg-id="Channel5.th" group-title="01 ฟรีทีวีไทย",02 ช่อง 5 HD
+https://639bc5877c5fe.streamlock.net/tv5hdlive/tv5hdlive/playlist.m3u8
+
+#EXTINF:-1 tvg-id="Channel7.th" group-title="01 ฟรีทีวีไทย",03 ช่อง 7 HD
+http://streaming-hwc.ch7.com/livech7hd/HD_720p.m3u8
+
+#EXTINF:-1 tvg-id="Channel8.th" group-title="01 ฟรีทีวีไทย",04 ช่อง 8
+https://cdn6.goprimetime.info/feed/202306140918/ch83/index.m3u8
+
+#EXTINF:-1 tvg-id="MCOTHD.th" group-title="01 ฟรีทีวีไทย",05 MCOT HD
+https://live-org-01-cdn.mcot.net/mcothd1080p_edge/smil:mcothd1080p.smil/playlist.m3u8
+
+#EXTINF:-1 tvg-id="NBT2HD.th" group-title="01 ฟรีทีวีไทย",06 NBT HD
+https://cdn-edge-ott.prd.go.th/live_vlc/smil:c30f-97f7-c767-ca64-98aa/chunklist_w507269531_b2128000.m3u8
+
+#EXTINF:-1 tvg-id="ThaiPBS3.th" group-title="01 ฟรีทีวีไทย",07 Thai PBS
+https://thaipbs-live.cdn.byteark.com/live/playlist.m3u8
+
+
+# ==============================
+# 02 ช่องบันเทิง
+# ==============================
+
+#EXTINF:-1 tvg-id="One31.th" group-title="02 ช่องบันเทิง",08 ONE31
+https://cdn6.goprimetime.info/feed/202306140918/chonehd3/index.m3u8
+
+#EXTINF:-1 tvg-id="ThairathTV32.th" group-title="02 ช่องบันเทิง",09 Thairath TV
+https://cdn6.goprimetime.info/feed/202306140918/chthairath3/index.m3u8
+
+#EXTINF:-1 tvg-id="Workpoint23.th" group-title="02 ช่องบันเทิง",10 Workpoint 23
+https://cdn6.goprimetime.info/feed/202306140918/chworkpoint3/index.m3u8
+
+#EXTINF:-1 tvg-id="Mono29.th" group-title="02 ช่องบันเทิง",11 MONO 29
+https://cdn6.goprimetime.info/feed/202306140918/chmono293/index.m3u8
+
+#EXTINF:-1 tvg-id="True4U.th" group-title="02 ช่องบันเทิง",12 True4U
+https://cdn6.goprimetime.info/feed/202306140918/chtrue4u3/index.m3u8
+
+
+# ==============================
+# 03 ช่องข่าว
+# ==============================
+
+#EXTINF:-1 tvg-id="TNN16.th" group-title="03 ช่องข่าว",13 TNN16
+https://cdn6.goprimetime.info/feed/202306140918/chtnn3/index.m3u8
+
+#EXTINF:-1 tvg-id="NationTV.th" group-title="03 ช่องข่าว",14 Nation TV
+https://cdn6.goprimetime.info/feed/202306140918/chnation3/index.m3u8
+
+#EXTINF:-1 tvg-id="PoliceTV.th" group-title="03 ช่องข่าว",15 Police TV
+https://cdn-th-vip.livestreaming.in.th/policetv/policetv/playlist.m3u8
+
+#EXTINF:-1 tvg-id="TopNews.th" group-title="03 ช่องข่าว",16 TOP News
+https://live.topnews.co.th/hls/topnews_a_480.m3u8
+
+
+# ==============================
+# 04 กีฬา
+# ==============================
+
+#EXTINF:-1 tvg-id="TSports7.th" group-title="04 กีฬา",17 T Sports 7
+https://cdn6.goprimetime.info/feed/202306140918/chtsport3/index.m3u8
+
+
+# ==============================
+# 05 DLTV
+# ==============================
+
+#EXTINF:-1 tvg-id="DLTV1.th" group-title="05 DLTV",18 DLTV 1
+https://cdn-live.dltv.ac.th/dltv01.m3u8
+
+#EXTINF:-1 tvg-id="DLTV2.th" group-title="05 DLTV",19 DLTV 2
+https://cdn-live.dltv.ac.th/dltv02.m3u8
+
+#EXTINF:-1 tvg-id="DLTV3.th" group-title="05 DLTV",20 DLTV 3
+https://cdn-live.dltv.ac.th/dltv03.m3u8
+
+#EXTINF:-1 tvg-id="DLTV4.th" group-title="05 DLTV",21 DLTV 4
+https://cdn-live.dltv.ac.th/dltv04.m3u8
+
+#EXTINF:-1 tvg-id="DLTV5.th" group-title="05 DLTV",22 DLTV 5
+https://cdn-live.dltv.ac.th/dltv05.m3u8
+
+#EXTINF:-1 tvg-id="DLTV6.th" group-title="05 DLTV",23 DLTV 6
+https://cdn-live.dltv.ac.th/dltv06.m3u8
+
+#EXTINF:-1 tvg-id="DLTV7.th" group-title="05 DLTV",24 DLTV 7
+https://cdn-live.dltv.ac.th/dltv07.m3u8
+
+#EXTINF:-1 tvg-id="DLTV8.th" group-title="05 DLTV",25 DLTV 8
+https://cdn-live.dltv.ac.th/dltv08.m3u8
+
+#EXTINF:-1 tvg-id="DLTV9.th" group-title="05 DLTV",26 DLTV 9
+https://cdn-live.dltv.ac.th/dltv09.m3u8
+
+#EXTINF:-1 tvg-id="DLTV10.th" group-title="05 DLTV",27 DLTV 10
+https://cdn-live.dltv.ac.th/dltv10.m3u8
+
+#EXTINF:-1 tvg-id="DLTV11.th" group-title="05 DLTV",28 DLTV 11
+https://cdn-live.dltv.ac.th/dltv11.m3u8
+
+#EXTINF:-1 tvg-id="DLTV12.th" group-title="05 DLTV",29 DLTV 12
+https://cdn-live.dltv.ac.th/dltv12.m3u8
+
+#EXTINF:-1 tvg-id="DLTV13.th" group-title="05 DLTV",30 DLTV 13
+https://cdn-live.dltv.ac.th/dltv13.m3u8
+
+#EXTINF:-1 tvg-id="DLTV14.th" group-title="05 DLTV",31 DLTV 14
+https://cdn-live.dltv.ac.th/dltv14.m3u8
+
+#EXTINF:-1 tvg-id="DLTV15.th" group-title="05 DLTV",32 DLTV 15
+https://cdn-live.dltv.ac.th/dltv15.m3u8
