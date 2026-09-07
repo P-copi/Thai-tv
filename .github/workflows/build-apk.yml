@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'ThaiTVPlayer-v1.2-project-fixed.zip'
+      - 'ThaiTVPlayer-v1.3-project-fixed.zip'
       - '.github/workflows/build-apk.yml'
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
 
       - name: Extract project
         run: |
-          unzip -o ThaiTVPlayer-v1.2-project-fixed.zip
+          unzip -o ThaiTVPlayer-v1.3-project-fixed.zip
           echo "=== Files after extraction ==="
           find . -maxdepth 5 -type f | sort
 
