@@ -103,3 +103,21 @@ https://cdn-live.dltv.ac.th/dltv13.m3u8
 https://cdn-live.dltv.ac.th/dltv14.m3u8
 #EXTINF:-1 tvg-id="DLTV15.th" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-15-th.png" group-title="05 DLTV",32 DLTV 15
 https://cdn-live.dltv.ac.th/dltv15.m3u8
+
+# ==============================
+# 06 BACKUP STREAMS
+# ==============================
+
+#EXTINF:-1 tvg-id="ThairathTV32.th" tvg-logo="https://www.lyngsat.com/logo/tv/tt/thairath-tv-32-th.png" group-title="06 BACKUP STREAMS",33 Thairath TV - Backup
+https://cco-streamer1.cdn.3bbtv.com:8443/3bb/live/32/32.mpd
+
+#EXTINF:-1 tvg-id="AmarinTV.th" tvg-logo="https://ais-s.ais-vidnt.com/ais/play/origin/LIVE//channelicon/0017_R.png" group-title="06 BACKUP STREAMS",34 Amarin TV - Backup
+https://cco-streamer1.cdn.3bbtv.com:8443/3bb/live/34/34.mpd
+
+#EXTINF:-1 tvg-id="Workpoint23.th" tvg-logo="https://i.imgur.com/zq6Xshf.png" group-title="06 BACKUP STREAMS",35 Workpoint 23 - Backup
+https://cco-streamer1.cdn.3bbtv.com:8443/3bb/live/23/23.mpd
+
+#EXTINF:-1 tvg-id="Channel8.th" tvg-logo="https://i.imgur.com/P3c5jAu.png" group-title="06 BACKUP STREAMS",36 Channel 8 - Backup
+https://cdn-th-vip.livestreaming.in.th/ch8/ch8/playlist.m3u8
+
+
