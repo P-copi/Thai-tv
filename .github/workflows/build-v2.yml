@@ -1,0 +1,36 @@
+name: Build Thai TV Player v2
+on:
+  push:
+    branches: [ build-v2 ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract v2 project
+        run: |
+          rm -rf /tmp/ThaiTVPlayer-v2
+          unzip -q ThaiTVPlayer-v2.zip -d /tmp
+          test -f /tmp/ThaiTVPlayer-v2/settings.gradle
+          test -f /tmp/ThaiTVPlayer-v2/app/build.gradle
+          test -f /tmp/ThaiTVPlayer-v2/app/src/main/AndroidManifest.xml
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Build APK
+        working-directory: /tmp/ThaiTVPlayer-v2
+        run: gradle clean assembleDebug --stacktrace --warning-mode all
+      - name: Verify APK
+        working-directory: /tmp/ThaiTVPlayer-v2
+        run: |
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          ls -lh app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ThaiTVPlayer-v2-debug
+          path: /tmp/ThaiTVPlayer-v2/app/build/outputs/apk/debug/app-debug.apk
