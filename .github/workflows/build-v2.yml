@@ -1,35 +1,69 @@
 name: Build Thai TV Player v2
+
 on:
   push:
     branches: [ build-v2 ]
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Extract v2 project
         run: |
-          rm -rf /tmp/ThaiTVPlayer-v2
-          unzip -q ThaiTVPlayer-v2.zip -d /tmp
+          set -eux
+          rm -rf /tmp/ThaiTVPlayer-v2 /tmp/ThaiTVPlayer-v2.zip
+          curl -fL --retry 3 --retry-all-errors "https://raw.githubusercontent.com/P-copi/Thai-tv/main/ThaiTVPlayer-v2.zip" -o /tmp/ThaiTVPlayer-v2.zip
+          unzip -q /tmp/ThaiTVPlayer-v2.zip -d /tmp
           test -f /tmp/ThaiTVPlayer-v2/settings.gradle
           test -f /tmp/ThaiTVPlayer-v2/app/build.gradle
           test -f /tmp/ThaiTVPlayer-v2/app/src/main/AndroidManifest.xml
+
+      - name: Fix Gradle repositories
+        working-directory: /tmp/ThaiTVPlayer-v2
+        run: |
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = 'ThaiTVPlayer-v2'
+          include ':app'
+          EOF
+          cat settings.gradle
+
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
+
       - name: Build APK
         working-directory: /tmp/ThaiTVPlayer-v2
-        run: gradle clean assembleDebug --stacktrace --warning-mode all
+        run: gradle clean assembleDebug --refresh-dependencies --stacktrace --warning-mode all
+
       - name: Verify APK
         working-directory: /tmp/ThaiTVPlayer-v2
         run: |
+          set -eux
           test -s app/build/outputs/apk/debug/app-debug.apk
           ls -lh app/build/outputs/apk/debug/app-debug.apk
+
       - uses: actions/upload-artifact@v4
         with:
           name: ThaiTVPlayer-v2-debug
