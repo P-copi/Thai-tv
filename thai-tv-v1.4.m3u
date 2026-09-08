@@ -1,0 +1,99 @@
+#EXTM3U
+# Thai TV Playlist v1.4
+# Updated: 2026-09-08
+
+# ==============================
+# 01 ฟรีทีวีไทย
+# ==============================
+#EXTINF:-1 tvg-id="3HD.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/cc/channel-3-th.svg" group-title="01 ฟรีทีวีไทย",01 ช่อง 3 HD
+https://live-us1.thaimomo.com/live-as/ch3hd-3/playlist.m3u8
+#EXTINF:-1 tvg-id="Channel5.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/tt/thai_tv_5_th.png" group-title="01 ฟรีทีวีไทย",02 ช่อง 5 HD
+https://639bc5877c5fe.streamlock.net/tv5hdlive/tv5hdlive/playlist.m3u8
+#EXTINF:-1 tvg-id="Channel7.th@SD" tvg-logo="https://i.imgur.com/SBCIwek.png" group-title="01 ฟรีทีวีไทย",03 ช่อง 7 HD
+https://lb1-live-mv.v2h-cdn.com/hls/ffac/gohg/gohg.m3u8
+#EXTINF:-1 tvg-id="Channel8.th@SD" tvg-logo="https://i.imgur.com/P3c5jAu.png" group-title="01 ฟรีทีวีไทย",04 ช่อง 8
+https://lb1-live-mv.v2h-cdn.com/hls/ffbe/jvcxf/jvcxf.m3u8
+#EXTINF:-1 tvg-id="MCOTHD.th@HD" tvg-logo="https://www.lyngsat.com/logo/tv/mm/mcot-hd-th.png" group-title="01 ฟรีทีวีไทย",05 MCOT HD
+https://mcothd-streaming-edge-cdn.mcot.net/tencentmcot/smil:tencentmcot.smil/playlist.m3u8
+#EXTINF:-1 tvg-id="NBT2HD.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/nn/nbt-2-th.png" group-title="01 ฟรีทีวีไทย",06 NBT HD
+https://cdn-edge.iiptvcdn.com/live_event/smil:f180-054a-38d7-ce66-f7cf.smil/playlist.m3u8
+#EXTINF:-1 tvg-id="ThaiPBS.th@SD" tvg-logo="https://i.imgur.com/CwalZjr.png" group-title="01 ฟรีทีวีไทย",07 Thai PBS
+https://thaipbs-live.cdn.byteark.com/live/playlist.m3u8
+
+# ==============================
+# 02 ช่องบันเทิง
+# ==============================
+#EXTINF:-1 tvg-id="One31.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/oo/one-31-th.png" group-title="02 ช่องบันเทิง",08 ONE31
+https://bcovlive-a.akamaihd.net/b6603a14ea59440a95e9235e14bc9332/ap-southeast-1/6415628290001/9c3d7fc7d10840a69e48b5939ae886e0/playlist_ssaiM.m3u8
+#EXTINF:-1 tvg-id="ThairathTV.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/tt/thairath-tv-32-th.png" group-title="02 ช่องบันเทิง",09 Thairath TV
+https://lb1-live-mv.v2h-cdn.com/hls/ffaf/thairath/thairath.m3u8
+#EXTINF:-1 tvg-id="Workpoint23.th@SD" tvg-logo="https://i.imgur.com/zq6Xshf.png" group-title="02 ช่องบันเทิง",10 Workpoint 23
+https://ctrl.laotv.la/live/WorkPoint/index.m3u8
+#EXTINF:-1 tvg-id="MONO29.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/mm/mono-29-th.png" group-title="02 ช่องบันเทิง",11 MONO 29
+https://lb1-live-mv.v2h-cdn.com/hls/ffbc/ffolvgdhk/ffolvgdhk.m3u8
+#EXTINF:-1 tvg-id="True4U.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/tt/true-4u-th.png" group-title="02 ช่องบันเทิง",12 True4U
+https://live-us1.thaimomo.com/live-as/chTrue4u-2/playlist.m3u8
+
+# ==============================
+# 03 ช่องข่าว
+# ==============================
+#EXTINF:-1 tvg-id="TNN16.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/tt/tnn-16-th.png" group-title="03 ช่องข่าว",13 TNN16
+https://live-us1.thaimomo.com/live-as/chtnn24-2/playlist.m3u8
+#EXTINF:-1 tvg-id="NationTV.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/nn/nation-tv-th.png" group-title="03 ช่องข่าว",14 Nation TV
+https://live-us1.thaimomo.com/live-as/chNation-3/playlist.m3u8
+#EXTINF:-1 tvg-id="PoliceTV.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/pp/police-tv-th.png" group-title="03 ช่องข่าว",15 Police TV
+https://cdn-th-vip.livestreaming.in.th/policetv/policetv/playlist.m3u8
+#EXTINF:-1 tvg-id="TopNews.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/tt/top-news-th.png" group-title="03 ช่องข่าว",16 TOP News
+https://live.topnews.co.th/hls/topnews_a_720.m3u8
+
+# ==============================
+# 04 กีฬา
+# ==============================
+#EXTINF:-1 tvg-id="TSports7.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/tt/t-sports-7-th.png" group-title="04 กีฬา",17 T Sports 7
+https://live-us1.thaimomo.com/live-as/chtsport-1/playlist.m3u8
+
+# ==============================
+# 05 DLTV
+# ==============================
+#EXTINF:-1 tvg-id="DLTV1.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-1-th.png" group-title="05 DLTV",18 DLTV 1
+https://cdn-live.dltv.ac.th/dltv01.m3u8
+#EXTINF:-1 tvg-id="DLTV2.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-2-th.png" group-title="05 DLTV",19 DLTV 2
+https://cdn-live.dltv.ac.th/dltv02.m3u8
+#EXTINF:-1 tvg-id="DLTV3.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-3-th.png" group-title="05 DLTV",20 DLTV 3
+https://cdn-live.dltv.ac.th/dltv03.m3u8
+#EXTINF:-1 tvg-id="DLTV4.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-4-th.png" group-title="05 DLTV",21 DLTV 4
+https://cdn-live.dltv.ac.th/dltv04.m3u8
+#EXTINF:-1 tvg-id="DLTV5.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-5-th.png" group-title="05 DLTV",22 DLTV 5
+https://cdn-live.dltv.ac.th/dltv05.m3u8
+#EXTINF:-1 tvg-id="DLTV6.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-6-th.png" group-title="05 DLTV",23 DLTV 6
+https://cdn-live.dltv.ac.th/dltv06.m3u8
+#EXTINF:-1 tvg-id="DLTV7.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-7-th.png" group-title="05 DLTV",24 DLTV 7
+https://cdn-live.dltv.ac.th/dltv07.m3u8
+#EXTINF:-1 tvg-id="DLTV8.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-8-th.png" group-title="05 DLTV",25 DLTV 8
+https://cdn-live.dltv.ac.th/dltv08.m3u8
+#EXTINF:-1 tvg-id="DLTV9.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-9-th.png" group-title="05 DLTV",26 DLTV 9
+https://cdn-live.dltv.ac.th/dltv09.m3u8
+#EXTINF:-1 tvg-id="DLTV10.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-10-th.png" group-title="05 DLTV",27 DLTV 10
+https://cdn-live.dltv.ac.th/dltv10.m3u8
+#EXTINF:-1 tvg-id="DLTV11.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-11-th.png" group-title="05 DLTV",28 DLTV 11
+https://cdn-live.dltv.ac.th/dltv11.m3u8
+#EXTINF:-1 tvg-id="DLTV12.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-12-th.png" group-title="05 DLTV",29 DLTV 12
+https://cdn-live.dltv.ac.th/dltv12.m3u8
+#EXTINF:-1 tvg-id="DLTV13.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-13-th.png" group-title="05 DLTV",30 DLTV 13
+https://cdn-live.dltv.ac.th/live/dltv13.m3u8
+#EXTINF:-1 tvg-id="DLTV14.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-14-th.png" group-title="05 DLTV",31 DLTV 14
+https://cdn-live.dltv.ac.th/dltv14.m3u8
+#EXTINF:-1 tvg-id="DLTV15.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/dd/dltv-15-th.png" group-title="05 DLTV",32 DLTV 15
+https://cdn-live.dltv.ac.th/dltv15.m3u8
+
+# ==============================
+# 06 BACKUP STREAMS
+# ==============================
+#EXTINF:-1 tvg-id="MCOTHD.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/mm/mcot-hd-th.png" group-title="06 BACKUP STREAMS",33 MCOT HD - Backup
+https://live-us1.thaimomo.com/live-as/chmcothd-3/playlist.m3u8
+#EXTINF:-1 tvg-id="ThairathTV.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/tt/thairath-tv-32-th.png" group-title="06 BACKUP STREAMS",34 Thairath TV - Backup
+https://live-us1.thaimomo.com/live-as/chthairathhd-3/playlist.m3u8
+#EXTINF:-1 tvg-id="MONO29.th@SD" tvg-logo="https://www.lyngsat.com/logo/tv/mm/mono-29-th.png" group-title="06 BACKUP STREAMS",35 MONO 29 - Backup
+https://live-us1.thaimomo.com/live-as/chmono29-2/playlist.m3u8
+#EXTINF:-1 tvg-id="AmarinTV.th@SD" tvg-logo="https://ais-s.ais-vidnt.com/ais/play/origin/LIVE//channelicon/0017_R.png" group-title="06 BACKUP STREAMS",36 Amarin TV - Backup
+https://live-us1.thaimomo.com/live-as/chamarin-3/playlist.m3u8
