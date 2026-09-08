@@ -1,7 +1,16 @@
 plugins { id 'com.android.application' }
 
-android { namespace 'com.pcopi.thaitv'; compileSdk 35
-    defaultConfig { applicationId 'com.pcopi.thaitv'; minSdk 23; targetSdk 35; versionCode 142; versionName '1.4.2' }
+android {
+    namespace 'com.pcopi.thaitv'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.pcopi.thaitv'
+        minSdk 23
+        targetSdk 36
+        versionCode 143
+        versionName '1.4.3'
+    }
 }
 
 dependencies {
