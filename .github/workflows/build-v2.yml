@@ -32,7 +32,7 @@ jobs:
           test -f app/src/main/java/com/pcopi/thaitv/MainActivity.kt
           sed -i 's/package="com.pcopi.thaitv"//' app/src/main/AndroidManifest.xml
 
-      - name: Fix Gradle repositories
+      - name: Fix Gradle repositories and JVM targets
         working-directory: /tmp/ThaiTVPlayer-v2
         run: |
           cat > settings.gradle <<'EOF'
@@ -55,6 +55,15 @@ jobs:
           rootProject.name = 'ThaiTVPlayer-v2'
           include ':app'
           EOF
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/build.gradle')
+          s = p.read_text()
+          block = '''\n\ntasks.withType(JavaCompile).configureEach {\n    options.release = 17\n}\n\ntasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {\n    kotlinOptions.jvmTarget = '17'\n}\n'''
+          if 'options.release = 17' not in s:
+              s += block
+          p.write_text(s)
+          PY
 
       - uses: actions/setup-java@v5
         with:
