@@ -1,10 +1,10 @@
-name: Build Thai TV APK
+name: Build Thai TV APK v1.4
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - 'ThaiTVPlayer-v1.3-project-fixed.zip'
+      - 'ThaiTVPlayer-v1.4-GitHub-APK.zip'
       - '.github/workflows/build-apk.yml'
 
 jobs:
@@ -15,17 +15,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract project
+      - name: Extract v1.4 project
         run: |
-          unzip -o ThaiTVPlayer-v1.3-project-fixed.zip
+          unzip -o ThaiTVPlayer-v1.4-GitHub-APK.zip
           echo "=== Files after extraction ==="
-          find . -maxdepth 5 -type f | sort
+          find . -maxdepth 6 -type f | sort
 
-      - name: Find project folder
+      - name: Find Android project
         run: |
-          PROJECT_DIR=$(find . -name "settings.gradle" -type f | head -n 1 | xargs dirname)
+          PROJECT_DIR=$(find . -name "settings.gradle" -o -name "settings.gradle.kts" | head -n 1 | xargs dirname)
           if [ -z "$PROJECT_DIR" ]; then
-            echo "ERROR: settings.gradle not found"
+            echo "ERROR: Android project settings file not found"
             exit 1
           fi
           echo "PROJECT_DIR=$PROJECT_DIR"
@@ -42,12 +42,12 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Build APK
+      - name: Build APK v1.4
         working-directory: ${{ env.PROJECT_DIR }}
         run: gradle assembleDebug
 
-      - name: Upload APK
+      - name: Upload APK v1.4
         uses: actions/upload-artifact@v4
         with:
-          name: ThaiTVPlayer-v1.2-debug
+          name: ThaiTVPlayer-v1.4-debug
           path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
