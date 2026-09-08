@@ -21,6 +21,17 @@ jobs:
           test -f /tmp/ThaiTVPlayer-v2/app/build.gradle
           test -f /tmp/ThaiTVPlayer-v2/app/src/main/AndroidManifest.xml
 
+      - name: Fix v2 source layout
+        working-directory: /tmp/ThaiTVPlayer-v2
+        run: |
+          set -eux
+          SRC="app/src/main/java/com/pcopi/thaitv/MainActivity.java"
+          if [ -f "$SRC" ]; then
+            mv "$SRC" "${SRC%.java}.kt"
+          fi
+          test -f app/src/main/java/com/pcopi/thaitv/MainActivity.kt
+          sed -i 's/package="com.pcopi.thaitv"//' app/src/main/AndroidManifest.xml
+
       - name: Fix Gradle repositories
         working-directory: /tmp/ThaiTVPlayer-v2
         run: |
@@ -44,7 +55,6 @@ jobs:
           rootProject.name = 'ThaiTVPlayer-v2'
           include ':app'
           EOF
-          cat settings.gradle
 
       - uses: actions/setup-java@v5
         with:
