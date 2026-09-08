@@ -25,6 +25,8 @@ jobs:
         working-directory: /tmp/ThaiTVPlayer-v2
         run: |
           cat > settings.gradle <<'EOF'
+          import org.gradle.api.initialization.resolve.RepositoriesMode
+
           pluginManagement {
               repositories {
                   google()
