@@ -31,6 +31,32 @@ jobs:
           echo "PROJECT_DIR=$PROJECT_DIR"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
+      - name: Fix v1.4 Java source
+        working-directory: ./ThaiTVPlayer-v1.4
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/src/main/java/com/pcopi/thaitv/MainActivity.java')
+          text = p.read_text(encoding='utf-8')
+          lines = text.splitlines()
+          changed = False
+          for n, line in enumerate(lines):
+              if 'line.charAt(i)' in line and 'line.length()' in line and 'charAt(i)' in line:
+                  if '==' in line and ('\\\\\'' in line or '\\\\' in line):
+                      lines[n] = "        if(i<line.length()&&(line.charAt(i)=='\"'||line.charAt(i)=='\\'')) {"
+                      changed = True
+          if not changed:
+              raise SystemExit('ERROR: Could not locate the malformed quote parser line')
+          p.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          print('Fixed MainActivity.java quote parser escaping')
+          PY
+          echo "=== Parser line after fix ==="
+          grep -n "line.charAt(i)" app/src/main/java/com/pcopi/thaitv/MainActivity.java
+          echo "=== App build.gradle ==="
+          cat app/build.gradle
+          echo "=== AndroidManifest.xml ==="
+          cat app/src/main/AndroidManifest.xml
+
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
@@ -44,13 +70,15 @@ jobs:
 
       - name: Build APK v1.4
         working-directory: ${{ env.PROJECT_DIR }}
-        run: gradle assembleDebug --stacktrace
+        run: gradle clean assembleDebug --stacktrace
 
       - name: Verify APK
         working-directory: ${{ env.PROJECT_DIR }}
         run: |
+          test -f app/build/outputs/apk/debug/app-debug.apk
           ls -lh app/build/outputs/apk/debug/app-debug.apk
           file app/build/outputs/apk/debug/app-debug.apk
+          unzip -l app/build/outputs/apk/debug/app-debug.apk | grep -E 'AndroidManifest.xml|classes.dex' | head
 
       - name: Upload APK v1.4
         uses: actions/upload-artifact@v4
