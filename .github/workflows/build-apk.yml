@@ -18,8 +18,9 @@ jobs:
       - name: Extract v1.4 project
         run: |
           unzip -o ThaiTVPlayer-v1.4-GitHub-APK.zip
-          echo "=== Files after extraction ==="
-          find . -maxdepth 6 -type f | sort
+          test -f ThaiTVPlayer-v1.4/app/src/main/java/com/pcopi/thaitv/MainActivity.java
+          echo "=== Android project extracted ==="
+          find ThaiTVPlayer-v1.4 -maxdepth 6 -type f | sort
 
       - name: Find Android project
         run: |
@@ -31,31 +32,36 @@ jobs:
           echo "PROJECT_DIR=$PROJECT_DIR"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
-      - name: Fix v1.4 Java source
+      - name: Fix and validate v1.4 Java source
         working-directory: ./ThaiTVPlayer-v1.4
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p = Path('app/src/main/java/com/pcopi/thaitv/MainActivity.java')
           text = p.read_text(encoding='utf-8')
+          text = text.replace('e.errorCodeName', 'e.errorCode')
           lines = text.splitlines()
-          changed = False
+          fixed_quote = False
           for n, line in enumerate(lines):
-              if 'line.charAt(i)' in line and 'line.length()' in line and 'charAt(i)' in line:
-                  if '==' in line and ('\\\\\'' in line or '\\\\' in line):
-                      lines[n] = "        if(i<line.length()&&(line.charAt(i)=='\"'||line.charAt(i)=='\\'')) {"
-                      changed = True
-          if not changed:
-              raise SystemExit('ERROR: Could not locate the malformed quote parser line')
+              if 'line.charAt(i)' in line and 'line.length()' in line:
+                  lines[n] = "        if(i<line.length()&&(line.charAt(i)=='\"'||line.charAt(i)=='\\'')) {"
+                  fixed_quote = True
+          if not fixed_quote:
+              raise SystemExit('ERROR: quote parser line not found')
           p.write_text('\n'.join(lines) + '\n', encoding='utf-8')
-          print('Fixed MainActivity.java quote parser escaping')
+          print('Applied Java compatibility fixes')
           PY
-          echo "=== Parser line after fix ==="
-          grep -n "line.charAt(i)" app/src/main/java/com/pcopi/thaitv/MainActivity.java
+          echo "=== Relevant Java lines ==="
+          grep -n -E "charAt\(i\)|errorCode" app/src/main/java/com/pcopi/thaitv/MainActivity.java
           echo "=== App build.gradle ==="
           cat app/build.gradle
           echo "=== AndroidManifest.xml ==="
           cat app/src/main/AndroidManifest.xml
+          echo "=== Check for obsolete errorCodeName ==="
+          if grep -R -n "errorCodeName" app/src/main/java; then
+            echo "ERROR: obsolete PlaybackException.errorCodeName remains"
+            exit 1
+          fi
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -70,15 +76,17 @@ jobs:
 
       - name: Build APK v1.4
         working-directory: ${{ env.PROJECT_DIR }}
-        run: gradle clean assembleDebug --stacktrace
+        run: gradle clean assembleDebug --stacktrace --warning-mode all
 
       - name: Verify APK
         working-directory: ${{ env.PROJECT_DIR }}
         run: |
-          test -f app/build/outputs/apk/debug/app-debug.apk
-          ls -lh app/build/outputs/apk/debug/app-debug.apk
-          file app/build/outputs/apk/debug/app-debug.apk
-          unzip -l app/build/outputs/apk/debug/app-debug.apk | grep -E 'AndroidManifest.xml|classes.dex' | head
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          ls -lh "$APK"
+          file "$APK"
+          unzip -l "$APK" | grep -E 'AndroidManifest.xml|classes.dex' | head
+          echo "APK BUILD VERIFIED: $APK"
 
       - name: Upload APK v1.4
         uses: actions/upload-artifact@v4
