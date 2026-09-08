@@ -1,0 +1,52 @@
+name: Build Thai TV Player v2 Fixed
+
+on:
+  push:
+    branches: [ build-v2-fixed ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download v2 project
+        run: |
+          rm -rf /tmp/ThaiTVPlayer-v2
+          mkdir -p /tmp/ThaiTVPlayer-v2
+          curl -fL --retry 3 --retry-delay 2 \
+            https://raw.githubusercontent.com/P-copi/Thai-tv/main/ThaiTVPlayer-v2.zip \
+            -o /tmp/ThaiTVPlayer-v2.zip
+          unzip -q /tmp/ThaiTVPlayer-v2.zip -d /tmp
+          test -f /tmp/ThaiTVPlayer-v2/settings.gradle
+          test -f /tmp/ThaiTVPlayer-v2/app/build.gradle
+          test -f /tmp/ThaiTVPlayer-v2/app/src/main/AndroidManifest.xml
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Build APK
+        working-directory: /tmp/ThaiTVPlayer-v2
+        run: gradle clean assembleDebug --stacktrace --warning-mode all
+
+      - name: Verify APK
+        working-directory: /tmp/ThaiTVPlayer-v2
+        run: |
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          ls -lh app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThaiTVPlayer-v2-fixed-debug
+          path: /tmp/ThaiTVPlayer-v2/app/build/outputs/apk/debug/app-debug.apk
