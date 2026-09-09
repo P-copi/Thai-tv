@@ -3,20 +3,20 @@ plugins {
 }
 
 android {
-    namespace 'com.pcopi.thaitv'
-    compileSdk 35
+    namespace = 'com.pcopi.thaitv'
+    compileSdk = 36
 
     defaultConfig {
-        applicationId 'com.pcopi.thaitv'
-        minSdk 23
-        targetSdk 35
-        versionCode 20
-        versionName '2.0.0'
+        applicationId = 'com.pcopi.thaitv'
+        minSdk = 23
+        targetSdk = 35
+        versionCode = 20
+        versionName = '2.0.0'
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 }
 
