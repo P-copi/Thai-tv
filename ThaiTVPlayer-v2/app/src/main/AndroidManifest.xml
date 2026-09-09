@@ -3,17 +3,9 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    <application
-        android:theme="@style/AppTheme"
-        android:label="Thai TV Player"
-        android:icon="@drawable/ic_launcher"
-        android:allowBackup="true"
-        android:supportsRtl="true">
-        <activity android:name=".MainActivityV21" android:screenOrientation="unspecified" android:configChanges="orientation|screenSize|keyboardHidden" android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+    <application android:theme="@style/AppTheme" android:label="Thai TV Player" android:icon="@drawable/ic_launcher" android:allowBackup="true" android:supportsRtl="true">
+        <activity android:name=".MainActivityV22" android:screenOrientation="unspecified" android:configChanges="orientation|screenSize|keyboardHidden" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
         </activity>
     </application>
 </manifest>
