@@ -11,67 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract v2 project
-        run: |
-          set -eux
-          rm -rf /tmp/ThaiTVPlayer-v2 /tmp/ThaiTVPlayer-v2.zip
-          curl -fL --retry 3 --retry-all-errors "https://raw.githubusercontent.com/P-copi/Thai-tv/main/ThaiTVPlayer-v2.zip" -o /tmp/ThaiTVPlayer-v2.zip
-          unzip -q /tmp/ThaiTVPlayer-v2.zip -d /tmp
-          test -f /tmp/ThaiTVPlayer-v2/settings.gradle
-          test -f /tmp/ThaiTVPlayer-v2/app/build.gradle
-          test -f /tmp/ThaiTVPlayer-v2/app/src/main/AndroidManifest.xml
-
-      - name: Fix v2 source layout
-        working-directory: /tmp/ThaiTVPlayer-v2
-        run: |
-          set -eux
-          SRC="app/src/main/java/com/pcopi/thaitv/MainActivity.java"
-          if [ -f "$SRC" ]; then
-            mv "$SRC" "${SRC%.java}.kt"
-          fi
-          test -f app/src/main/java/com/pcopi/thaitv/MainActivity.kt
-          sed -i 's/package="com.pcopi.thaitv"//' app/src/main/AndroidManifest.xml
-
-      - name: Fix Gradle repositories and JVM targets
-        working-directory: /tmp/ThaiTVPlayer-v2
-        run: |
-          set -eux
-          cat > settings.gradle <<'EOF'
-          import org.gradle.api.initialization.resolve.RepositoriesMode
-
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = 'ThaiTVPlayer-v2'
-          include ':app'
-          EOF
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('app/build.gradle')
-          s = p.read_text()
-          s = s.replace('JavaVersion.VERSION_17', 'JavaVersion.VERSION_1_8')
-          s = s.replace("sourceCompatibility = '17'", "sourceCompatibility = '1.8'")
-          s = s.replace("targetCompatibility = '17'", "targetCompatibility = '1.8'")
-          s = s.replace('sourceCompatibility 17', 'sourceCompatibility 1.8')
-          s = s.replace('targetCompatibility 17', 'targetCompatibility 1.8')
-          block = '''\n\ntasks.withType(JavaCompile).configureEach {\n    sourceCompatibility = JavaVersion.VERSION_1_8\n    targetCompatibility = JavaVersion.VERSION_1_8\n}\n\ntasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {\n    kotlinOptions.jvmTarget = '1.8'\n}\n'''
-          if "kotlinOptions.jvmTarget = '1.8'" not in s:
-              s += block
-          p.write_text(s)
-          PY
-          grep -nE 'sourceCompatibility|targetCompatibility|jvmTarget' app/build.gradle || true
-
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -82,11 +21,11 @@ jobs:
           gradle-version: '8.13'
 
       - name: Build APK
-        working-directory: /tmp/ThaiTVPlayer-v2
+        working-directory: ThaiTVPlayer-v2
         run: gradle clean assembleDebug --refresh-dependencies --stacktrace --warning-mode all
 
       - name: Verify APK
-        working-directory: /tmp/ThaiTVPlayer-v2
+        working-directory: ThaiTVPlayer-v2
         run: |
           set -eux
           test -s app/build/outputs/apk/debug/app-debug.apk
@@ -95,4 +34,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ThaiTVPlayer-v2-debug
-          path: /tmp/ThaiTVPlayer-v2/app/build/outputs/apk/debug/app-debug.apk
+          path: ThaiTVPlayer-v2/app/build/outputs/apk/debug/app-debug.apk
