@@ -26,6 +26,9 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Fix landscape player visibility
+        run: sed -i 's/if (normalPanel != null) normalPanel.setVisibility(landscape ? View.GONE : View.VISIBLE);/if (normalPanel != null) normalPanel.setVisibility(View.VISIBLE);/' ThaiTVPlayer-New/app/src/main/java/com/pcopi/thaitvnew/MainActivity.java
+
       - name: Build debug APK
         working-directory: ThaiTVPlayer-New
         run: gradle --no-daemon clean :app:assembleDebug
@@ -36,6 +39,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ThaiTVPlayer-New-v3.1-debug
+          name: ThaiTVPlayer-New-v3.1-landscape-fix-debug
           path: ThaiTVPlayer-New/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
