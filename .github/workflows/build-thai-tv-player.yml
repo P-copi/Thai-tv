@@ -27,7 +27,7 @@ jobs:
           gradle-version: '8.9'
 
       - name: Fix landscape player visibility
-        run: sed -i 's/if (normalPanel != null) normalPanel.setVisibility(landscape ? View.GONE : View.VISIBLE);/if (normalPanel != null) normalPanel.setVisibility(View.VISIBLE);/' ThaiTVPlayer-New/app/src/main/java/com/pcopi/thaitvnew/MainActivity.java
+        run: python3 ThaiTVPlayer-New/patch-landscape.py
 
       - name: Build debug APK
         working-directory: ThaiTVPlayer-New
