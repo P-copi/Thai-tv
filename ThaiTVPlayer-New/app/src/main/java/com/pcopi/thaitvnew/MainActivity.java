@@ -1,5 +1,6 @@
 package com.pcopi.thaitvnew;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
