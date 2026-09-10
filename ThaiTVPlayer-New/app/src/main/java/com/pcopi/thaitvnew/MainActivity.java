@@ -8,17 +8,24 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Base64;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MimeTypes;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.drm.DefaultDrmSessionManager;
+import androidx.media3.exoplayer.drm.DrmSessionManager;
+import androidx.media3.exoplayer.drm.DrmSessionManagerProvider;
+import androidx.media3.exoplayer.drm.FrameworkMediaDrm;
+import androidx.media3.exoplayer.drm.LocalMediaDrmCallback;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -65,7 +72,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void applyOrientation(int orientation) {
         boolean landscape = orientation == Configuration.ORIENTATION_LANDSCAPE;
-        // Keep the root layout visible. Only its non-player children are hidden in landscape.
         if (normalPanel != null) normalPanel.setVisibility(View.VISIBLE);
         if (toolbar != null) toolbar.setVisibility(landscape ? View.GONE : View.VISIBLE);
         if (controls != null) controls.setVisibility(landscape ? View.GONE : View.VISIBLE);
@@ -148,13 +154,51 @@ public class MainActivity extends AppCompatActivity {
         setContentView(drawer);
 
         DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
-                .setUserAgent("Mozilla/5.0 (Android) ThaiTVPlayer/3.1")
+                .setUserAgent("Mozilla/5.0 (Android) ThaiTVPlayer/4.0")
                 .setConnectTimeoutMs(15000).setReadTimeoutMs(25000).setAllowCrossProtocolRedirects(true);
-        player=new ExoPlayer.Builder(this).setMediaSourceFactory(new DefaultMediaSourceFactory(http)).build();
+        DefaultMediaSourceFactory mediaFactory = new DefaultMediaSourceFactory(http)
+                .setDrmSessionManagerProvider(new ClearKeyDrmProvider());
+        player=new ExoPlayer.Builder(this).setMediaSourceFactory(mediaFactory).build();
         playerView.setPlayer(player);
         player.addListener(new androidx.media3.common.Player.Listener(){
             @Override public void onPlayerError(PlaybackException e){ error("เปิดช่องไม่ได้: "+(e.getErrorCodeName()==null?"ไม่ทราบสาเหตุ":e.getErrorCodeName())); }
         });
+    }
+
+    private class ClearKeyDrmProvider implements DrmSessionManagerProvider {
+        @Override public DrmSessionManager get(Object mediaItem) {
+            MediaItem item = (MediaItem) mediaItem;
+            Object tag = item.localConfiguration == null ? null : item.localConfiguration.tag;
+            if (!(tag instanceof Channel)) return DrmSessionManager.DRM_UNSUPPORTED;
+            Channel c = (Channel) tag;
+            if (c.clearKey == null || c.clearKey.isEmpty()) return DrmSessionManager.DRM_UNSUPPORTED;
+            try {
+                byte[] json = buildClearKeyJson(c.clearKey).getBytes(StandardCharsets.UTF_8);
+                return new DefaultDrmSessionManager.Builder()
+                        .setUuidAndExoMediaDrmProvider(C.CLEARKEY_UUID, FrameworkMediaDrm.DEFAULT_PROVIDER)
+                        .build(new LocalMediaDrmCallback(json));
+            } catch (Exception e) {
+                return DrmSessionManager.DRM_UNSUPPORTED;
+            }
+        }
+    }
+
+    private String buildClearKeyJson(String pair) throws Exception {
+        String[] p = pair.trim().split(":",2);
+        if (p.length != 2) throw new IllegalArgumentException("ClearKey ต้องเป็น KID:KEY");
+        byte[] kid = hexToBytes(p[0]);
+        byte[] key = hexToBytes(p[1]);
+        String kid64 = Base64.encodeToString(kid, Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+        String key64 = Base64.encodeToString(key, Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+        return "{\"keys\":[{\"kty\":\"oct\",\"kid\":\""+kid64+"\",\"k\":\""+key64+"\"}],\"type\":\"temporary\"}";
+    }
+
+    private byte[] hexToBytes(String s) {
+        String x=s.replace("-","").trim();
+        if ((x.length()&1)!=0) throw new IllegalArgumentException("hex ไม่สมบูรณ์");
+        byte[] out=new byte[x.length()/2];
+        for(int i=0;i<out.length;i++) out[i]=(byte)Integer.parseInt(x.substring(i*2,i*2+2),16);
+        return out;
     }
 
     private void buildDrawer(){
@@ -197,15 +241,42 @@ public class MainActivity extends AppCompatActivity {
     private void streamDialog(){EditText e=new EditText(this);e.setSingleLine();e.setHint("https://.../stream.m3u8");new AlertDialog.Builder(this).setTitle("เปิด URL สตรีม").setView(e).setNegativeButton("ยกเลิก",null).setPositiveButton("เล่น",(d,w)->{String u=e.getText().toString().trim();if(!u.isEmpty())play(new Channel("Network Stream","",u));}).show();}
     private void searchDialog(){EditText e=new EditText(this);e.setSingleLine();e.setHint("ค้นหาช่อง");new AlertDialog.Builder(this).setTitle("ค้นหาช่อง").setView(e).setNegativeButton("ปิด",null).setPositiveButton("ค้นหา",(d,w)->{String q=e.getText().toString().toLowerCase(Locale.ROOT);ArrayList<Channel> r=new ArrayList<>();for(Channel c:channels)if(c.name.toLowerCase(Locale.ROOT).contains(q))r.add(c);showChannels(r,"ผลการค้นหา");}).show();}
     private void settingsDialog(){new AlertDialog.Builder(this).setTitle("ตั้งค่า").setMultiChoiceItems(new String[]{"เล่นช่องอัตโนมัติเมื่อเลือก","จำรายการโปรด","ใช้ตัวควบคุมแบบเต็มหน้าจอ"},new boolean[]{true,true,true},null).setPositiveButton("ตกลง",null).show();}
-    private void aboutDialog(){new AlertDialog.Builder(this).setTitle("Thai TV Player").setMessage("เครื่องเล่น IPTV สำหรับ M3U / M3U8\n\nรองรับไฟล์ M3U ในเครื่อง, URL Playlist และการเล่น HLS/M3U8").setPositiveButton("ตกลง",null).show();}
+    private void aboutDialog(){new AlertDialog.Builder(this).setTitle("Thai TV Player").setMessage("เครื่องเล่น IPTV สำหรับ M3U / M3U8 / MPEG-DASH\n\nรองรับไฟล์ M3U ในเครื่อง, URL Playlist, HLS/M3U8 และ DASH ClearKey").setPositiveButton("ตกลง",null).show();}
 
     private void loadUrl(String url){if(url==null||url.isEmpty()){error("URL ว่าง");return;}status.setText("กำลังโหลด playlist…");status.setTextColor(0xffffb74d);executor.execute(()->{try{String text=http(url);main.post(()->parseAndShow(text,"รายการช่อง"));}catch(Exception e){main.post(()->error("โหลดไม่ได้: "+e.getMessage()));}});}
-    private String http(String s)throws Exception{HttpURLConnection c=(HttpURLConnection)new URL(s).openConnection();c.setConnectTimeout(12000);c.setReadTimeout(20000);c.setInstanceFollowRedirects(true);c.setRequestProperty("User-Agent","Mozilla/5.0 (Android) ThaiTVPlayer/3.1");int code=c.getResponseCode();if(code<200||code>=400)throw new IOException("HTTP "+code);try(InputStream in=c.getInputStream()){return read(in);}finally{c.disconnect();}}
+    private String http(String s)throws Exception{HttpURLConnection c=(HttpURLConnection)new URL(s).openConnection();c.setConnectTimeout(12000);c.setReadTimeout(20000);c.setInstanceFollowRedirects(true);c.setRequestProperty("User-Agent","Mozilla/5.0 (Android) ThaiTVPlayer/4.0");int code=c.getResponseCode();if(code<200||code>=400)throw new IOException("HTTP "+code);try(InputStream in=c.getInputStream()){return read(in);}finally{c.disconnect();}}
     private String read(InputStream in)throws Exception{ByteArrayOutputStream b=new ByteArrayOutputStream();byte[] x=new byte[8192];int n;while((n=in.read(x))!=-1)b.write(x,0,n);return b.toString(StandardCharsets.UTF_8.name());}
     private void parseAndShow(String text,String name){ArrayList<Channel> r=parse(text);if(r.isEmpty()){error("ไม่พบช่องใน M3U");return;}channels.clear();channels.addAll(r);showChannels(channels,name);status.setText("พบ "+r.size()+" ช่อง");}
-    private ArrayList<Channel> parse(String text){ArrayList<Channel> r=new ArrayList<>();String[] lines=text.replace("\uFEFF","").replace("\r","").split("\n");String n="ช่องไม่ระบุ",logo="";for(String raw:lines){String line=raw.trim();if(line.startsWith("#EXTINF")){int comma=line.indexOf(',');n=comma>=0?line.substring(comma+1).trim():"ช่อง";logo=attr(line,"tvg-logo");}else if((line.startsWith("http://")||line.startsWith("https://"))&&!line.startsWith("#")){r.add(new Channel(n,logo,line));n="ช่องไม่ระบุ";logo="";}}return r;}
+    private ArrayList<Channel> parse(String text){
+        ArrayList<Channel> r=new ArrayList<>();
+        String[] lines=text.replace("\uFEFF","").replace("\r","").split("\n");
+        String n="ช่องไม่ระบุ",logo="",clearKey="";
+        for(String raw:lines){
+            String line=raw.trim();
+            if(line.startsWith("#EXTINF")){int comma=line.indexOf(',');n=comma>=0?line.substring(comma+1).trim():"ช่อง";logo=attr(line,"tvg-logo");clearKey="";}
+            else if(line.startsWith("#KODIPROP:")){
+                String prop=line.substring("#KODIPROP:".length()).trim();
+                if(prop.startsWith("inputstream.adaptive.license_key=")) clearKey=prop.substring(prop.indexOf('=')+1).trim();
+            }
+            else if((line.startsWith("http://")||line.startsWith("https://"))&&!line.startsWith("#")){
+                r.add(new Channel(n,logo,line,clearKey));n="ช่องไม่ระบุ";logo="";clearKey="";
+            }
+        }
+        return r;
+    }
     private String attr(String s,String key){String q=key+"=\"";int a=s.indexOf(q);if(a<0)return "";a+=q.length();int b=s.indexOf('"',a);return b>a?s.substring(a,b):"";}
-    private void play(Channel c){if(c==null||c.url==null||c.url.isEmpty()||player==null)return;try{String u=c.url.trim();MediaItem.Builder mb=new MediaItem.Builder().setUri(u);String low=u.toLowerCase(Locale.ROOT);if(low.contains(".m3u8")||low.contains("m3u8?"))mb.setMimeType(MimeTypes.APPLICATION_M3U8);player.stop();player.clearMediaItems();player.setMediaItem(mb.build());player.prepare();player.play();addHistory(c);title.setText(c.name);status.setText("กำลังเปิด: "+c.name);status.setTextColor(0xffffb74d);}catch(Exception e){error("เปิดช่องไม่ได้: "+e.getMessage());}}
+    private void play(Channel c){
+        if(c==null||c.url==null||c.url.isEmpty()||player==null)return;
+        try{
+            String u=c.url.trim();
+            MediaItem.Builder mb=new MediaItem.Builder().setUri(u).setTag(c);
+            String low=u.toLowerCase(Locale.ROOT);
+            if(low.contains(".m3u8")||low.contains("m3u8?")) mb.setMimeType(MimeTypes.APPLICATION_M3U8);
+            else if(low.contains(".mpd")||low.contains("mpd?")) mb.setMimeType(MimeTypes.APPLICATION_MPD);
+            if(c.clearKey!=null&&!c.clearKey.isEmpty()) mb.setDrmConfiguration(new MediaItem.DrmConfiguration.Builder(C.CLEARKEY_UUID).setMultiSession(false).build());
+            player.stop();player.clearMediaItems();player.setMediaItem(mb.build());player.prepare();player.play();addHistory(c);title.setText(c.name);status.setText(c.clearKey.isEmpty()?"กำลังเปิด: "+c.name:"กำลังเปิด: "+c.name+" (ClearKey)");status.setTextColor(0xffffb74d);
+        }catch(Exception e){error("เปิดช่องไม่ได้: "+e.getMessage());}
+    }
     private void stopPlayer(){if(player!=null){player.stop();player.clearMediaItems();}title.setText("Thai TV Player");status.setText("หยุดเล่นแล้ว");status.setTextColor(0xffffb74d);}
     private void addHistory(Channel c){for(int i=history.size()-1;i>=0;i--)if(history.get(i).url.equals(c.url))history.remove(i);history.add(0,c);if(history.size()>30)history.remove(history.size()-1);}
     private void toggleFav(Channel c){for(int i=0;i<favorites.size();i++){if(favorites.get(i).url.equals(c.url)){favorites.remove(i);adapter.notifyDataSetChanged();return;}}favorites.add(c);adapter.notifyDataSetChanged();}
@@ -214,12 +285,12 @@ public class MainActivity extends AppCompatActivity {
     private View makeFatal(Throwable t){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);l.setPadding(dp(24),dp(50),dp(24),dp(24));l.setBackgroundColor(0xff101010);TextView a=tv("Thai TV Player",24);a.setTextColor(0xffff9800);l.addView(a);TextView e=tv("แอปเริ่มทำงานไม่สำเร็จ\n"+t.getClass().getSimpleName()+"\n"+(t.getMessage()==null?"":t.getMessage()),14);e.setTextColor(0xffff7777);l.addView(e);Button r=btn("ลองเปิดใหม่");r.setOnClickListener(v->recreate());l.addView(r);return l;}
     @Override protected void onDestroy(){if(player!=null)player.release();executor.shutdownNow();super.onDestroy();}
 
-    static class Channel{String name,logo,url;Channel(String n,String l,String u){name=n;logo=l;url=u;}}
+    static class Channel{String name,logo,url,clearKey;Channel(String n,String l,String u){this(n,l,u,"");}Channel(String n,String l,String u,String k){name=n;logo=l;url=u;clearKey=k==null?"":k;}}
     class ChannelAdapter extends RecyclerView.Adapter<ChannelVH>{
         ArrayList<Channel> data=new ArrayList<>();
         void setData(List<Channel>d){data=new ArrayList<>(d);notifyDataSetChanged();}
         @Override public ChannelVH onCreateViewHolder(android.view.ViewGroup p,int v){LinearLayout row=new LinearLayout(MainActivity.this);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(dp(8),dp(5),dp(8),dp(5));ImageView im=new ImageView(MainActivity.this);im.setScaleType(ImageView.ScaleType.CENTER_INSIDE);row.addView(im,new LinearLayout.LayoutParams(dp(58),dp(58)));LinearLayout mid=new LinearLayout(MainActivity.this);mid.setOrientation(LinearLayout.VERTICAL);TextView name=tv("",16),sub=tv("",12);sub.setTextColor(0xff888888);mid.addView(name,new LinearLayout.LayoutParams(-1,dp(34)));mid.addView(sub,new LinearLayout.LayoutParams(-1,dp(24)));row.addView(mid,new LinearLayout.LayoutParams(0,dp(68),1));TextView star=tv("☆",28);star.setGravity(Gravity.CENTER);row.addView(star,new LinearLayout.LayoutParams(dp(52),dp(68)));return new ChannelVH(row,im,name,sub,star);}
-        @Override public void onBindViewHolder(ChannelVH h,int pos){Channel c=data.get(pos);h.name.setText(c.name);h.sub.setText(c.url);h.star.setText(isFav(c)?"★":"☆");if(c.logo!=null&&!c.logo.isEmpty())Glide.with(MainActivity.this).load(c.logo).placeholder(android.R.drawable.ic_menu_gallery).error(android.R.drawable.ic_menu_gallery).into(h.img);else h.img.setImageResource(android.R.drawable.ic_media_play);h.itemView.setOnClickListener(v->play(c));h.star.setOnClickListener(v->toggleFav(c));}
+        @Override public void onBindViewHolder(ChannelVH h,int pos){Channel c=data.get(pos);h.name.setText(c.name);h.sub.setText(c.clearKey.isEmpty()?c.url:(c.url+"  • ClearKey"));h.star.setText(isFav(c)?"★":"☆");if(c.logo!=null&&!c.logo.isEmpty())Glide.with(MainActivity.this).load(c.logo).placeholder(android.R.drawable.ic_menu_gallery).error(android.R.drawable.ic_menu_gallery).into(h.img);else h.img.setImageResource(android.R.drawable.ic_media_play);h.itemView.setOnClickListener(v->play(c));h.star.setOnClickListener(v->toggleFav(c));}
         @Override public int getItemCount(){return data.size();}
     }
     static class ChannelVH extends RecyclerView.ViewHolder{ImageView img;TextView name,sub,star;ChannelVH(View v,ImageView i,TextView n,TextView s,TextView f){super(v);img=i;name=n;sub=s;star=f;}}
