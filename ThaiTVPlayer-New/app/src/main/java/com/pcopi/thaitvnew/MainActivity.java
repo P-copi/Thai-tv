@@ -10,7 +10,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
-import android.view.Window;
 import android.view.WindowManager;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
@@ -66,7 +65,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void applyOrientation(int orientation) {
         boolean landscape = orientation == Configuration.ORIENTATION_LANDSCAPE;
-        if (normalPanel != null) normalPanel.setVisibility(landscape ? View.GONE : View.VISIBLE);
+        // Keep the root layout visible. Only its non-player children are hidden in landscape.
+        if (normalPanel != null) normalPanel.setVisibility(View.VISIBLE);
         if (toolbar != null) toolbar.setVisibility(landscape ? View.GONE : View.VISIBLE);
         if (controls != null) controls.setVisibility(landscape ? View.GONE : View.VISIBLE);
         if (status != null) status.setVisibility(landscape ? View.GONE : View.VISIBLE);
@@ -205,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
     private void parseAndShow(String text,String name){ArrayList<Channel> r=parse(text);if(r.isEmpty()){error("ไม่พบช่องใน M3U");return;}channels.clear();channels.addAll(r);showChannels(channels,name);status.setText("พบ "+r.size()+" ช่อง");}
     private ArrayList<Channel> parse(String text){ArrayList<Channel> r=new ArrayList<>();String[] lines=text.replace("\uFEFF","").replace("\r","").split("\n");String n="ช่องไม่ระบุ",logo="";for(String raw:lines){String line=raw.trim();if(line.startsWith("#EXTINF")){int comma=line.indexOf(',');n=comma>=0?line.substring(comma+1).trim():"ช่อง";logo=attr(line,"tvg-logo");}else if((line.startsWith("http://")||line.startsWith("https://"))&&!line.startsWith("#")){r.add(new Channel(n,logo,line));n="ช่องไม่ระบุ";logo="";}}return r;}
     private String attr(String s,String key){String q=key+"=\"";int a=s.indexOf(q);if(a<0)return "";a+=q.length();int b=s.indexOf('"',a);return b>a?s.substring(a,b):"";}
-    private void play(Channel c){if(c==null||c.url==null||c.url.isEmpty()||player==null)return;try{String u=c.url.trim();MediaItem.Builder mb=new MediaItem.Builder().setUri(u);String low=u.toLowerCase(Locale.ROOT);if(low.contains(".m3u8")||low.contains("m3u8?"))mb.setMimeType(MimeTypes.APPLICATION_M3U8);player.stop();player.setMediaItem(mb.build());player.prepare();player.play();addHistory(c);title.setText(c.name);status.setText("กำลังเปิด: "+c.name);status.setTextColor(0xffffb74d);}catch(Exception e){error("เปิดช่องไม่ได้: "+e.getMessage());}}
+    private void play(Channel c){if(c==null||c.url==null||c.url.isEmpty()||player==null)return;try{String u=c.url.trim();MediaItem.Builder mb=new MediaItem.Builder().setUri(u);String low=u.toLowerCase(Locale.ROOT);if(low.contains(".m3u8")||low.contains("m3u8?"))mb.setMimeType(MimeTypes.APPLICATION_M3U8);player.stop();player.clearMediaItems();player.setMediaItem(mb.build());player.prepare();player.play();addHistory(c);title.setText(c.name);status.setText("กำลังเปิด: "+c.name);status.setTextColor(0xffffb74d);}catch(Exception e){error("เปิดช่องไม่ได้: "+e.getMessage());}}
     private void stopPlayer(){if(player!=null){player.stop();player.clearMediaItems();}title.setText("Thai TV Player");status.setText("หยุดเล่นแล้ว");status.setTextColor(0xffffb74d);}
     private void addHistory(Channel c){for(int i=history.size()-1;i>=0;i--)if(history.get(i).url.equals(c.url))history.remove(i);history.add(0,c);if(history.size()>30)history.remove(history.size()-1);}
     private void toggleFav(Channel c){for(int i=0;i<favorites.size();i++){if(favorites.get(i).url.equals(c.url)){favorites.remove(i);adapter.notifyDataSetChanged();return;}}favorites.add(c);adapter.notifyDataSetChanged();}
