@@ -38,177 +38,131 @@ public class ThaiTVApplication extends Application {
             @Override public void onActivityPaused(Activity a) {}
             @Override public void onActivityStopped(Activity a) {}
             @Override public void onActivitySaveInstanceState(Activity a, Bundle b) {}
-            @Override public void onActivityDestroyed(Activity a) {
-                VolumeBrightnessOverlay o = overlays.remove(a);
-                if (o != null) o.remove();
-                if (currentActivity == a) currentActivity = null;
-            }
+            @Override public void onActivityDestroyed(Activity a) { VolumeBrightnessOverlay o=overlays.remove(a); if(o!=null)o.remove(); if(currentActivity==a)currentActivity=null; }
         });
         registerComponentCallbacks(new ComponentCallbacks() {
-            @Override public void onConfigurationChanged(Configuration newConfig) {
-                if (currentActivity != null) main.postDelayed(() -> installOverlay(currentActivity), 350);
-            }
+            @Override public void onConfigurationChanged(Configuration c) { if(currentActivity!=null) main.postDelayed(()->installOverlay(currentActivity),250); }
             @Override public void onLowMemory() {}
         });
     }
 
     private void installOverlay(Activity activity) {
-        boolean landscape = activity.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
-        VolumeBrightnessOverlay overlay = overlays.get(activity);
-        if (!landscape) {
-            if (overlay != null) overlay.setOverlayEnabled(false);
-            return;
-        }
-        if (overlay == null) {
-            overlay = new VolumeBrightnessOverlay(activity);
-            overlays.put(activity, overlay);
-            FrameLayout decor = findDecorContent(activity);
-            if (decor != null) decor.addView(overlay, new FrameLayout.LayoutParams(-1, -1));
+        boolean landscape=activity.getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE;
+        VolumeBrightnessOverlay overlay=overlays.get(activity);
+        if(!landscape){ if(overlay!=null)overlay.setOverlayEnabled(false); return; }
+        if(overlay==null){
+            overlay=new VolumeBrightnessOverlay(activity);
+            overlays.put(activity,overlay);
+            View content=activity.findViewById(android.R.id.content);
+            if(content instanceof ViewGroup) ((ViewGroup)content).addView(overlay,new ViewGroup.LayoutParams(-1,-1));
+            else ((ViewGroup)activity.getWindow().getDecorView()).addView(overlay,new ViewGroup.LayoutParams(-1,-1));
         }
         overlay.setOverlayEnabled(true);
         overlay.bringToFront();
     }
 
-    private FrameLayout findDecorContent(Activity activity) {
-        ViewGroup decor = (ViewGroup) activity.getWindow().getDecorView();
-        for (int i = 0; i < decor.getChildCount(); i++) {
-            View child = decor.getChildAt(i);
-            if (child instanceof FrameLayout) return (FrameLayout) child;
-        }
-        return null;
-    }
-
     private static class VolumeBrightnessOverlay extends View {
         private final Activity activity;
         private final AudioManager audio;
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final RectF bar = new RectF();
-        private float downX, downY;
-        private float startLevel;
-        private boolean changing;
-        private boolean volumeMode;
-        private float shownLevel = -1f;
+        private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF rect=new RectF();
+        private final Handler handler=new Handler(Looper.getMainLooper());
+        private float downX,downY,startLevel,shownLevel=-1f;
+        private boolean changing,volumeMode;
         private long hideAt;
-        private final Handler handler = new Handler(Looper.getMainLooper());
-        private final Runnable hideRunnable = () -> {
-            if (System.currentTimeMillis() >= hideAt) { shownLevel = -1f; invalidate(); }
-        };
+        private final Runnable hide=()->{if(System.currentTimeMillis()>=hideAt){shownLevel=-1f;invalidate();}};
 
-        VolumeBrightnessOverlay(Activity a) {
-            super(a);
-            activity = a;
-            audio = (AudioManager) a.getSystemService(Context.AUDIO_SERVICE);
+        VolumeBrightnessOverlay(Activity a){
+            super(a); activity=a;
+            audio=(AudioManager)a.getSystemService(Context.AUDIO_SERVICE);
             setBackgroundColor(Color.TRANSPARENT);
             setClickable(true);
             setFocusable(false);
         }
-
-        void setOverlayEnabled(boolean enabled) {
-            setVisibility(enabled ? VISIBLE : GONE);
-            if (!enabled) { shownLevel = -1f; handler.removeCallbacks(hideRunnable); }
+        void setOverlayEnabled(boolean enabled){
+            setVisibility(enabled?VISIBLE:GONE);
+            if(!enabled){shownLevel=-1f;handler.removeCallbacks(hide);}
         }
+        void remove(){handler.removeCallbacks(hide);if(getParent() instanceof ViewGroup)((ViewGroup)getParent()).removeView(this);}
 
-        void remove() {
-            handler.removeCallbacks(hideRunnable);
-            if (getParent() instanceof ViewGroup) ((ViewGroup) getParent()).removeView(this);
-        }
-
-        @Override protected void onDraw(Canvas c) {
+        @Override protected void onDraw(Canvas c){
             super.onDraw(c);
-            if (shownLevel < 0f || !isShown()) return;
-            float w = getWidth(), h = getHeight();
-            float cx = volumeMode ? w * 0.82f : w * 0.18f;
-            float barH = Math.min(h * 0.42f, dp(280));
-            float barW = dp(10);
-            float top = (h - barH) / 2f;
-            float bottom = top + barH;
-
-            paint.setColor(0xB8000000);
-            bar.set(cx - dp(44), top - dp(62), cx + dp(44), bottom + dp(62));
-            c.drawRoundRect(bar, dp(22), dp(22), paint);
-            paint.setColor(0x66FFFFFF);
-            bar.set(cx - barW / 2f, top, cx + barW / 2f, bottom);
-            c.drawRoundRect(bar, barW / 2f, barW / 2f, paint);
+            if(shownLevel<0f||!isShown())return;
+            float w=getWidth(),h=getHeight();
+            float cx=volumeMode?w-dp(70):dp(70);
+            float barH=Math.min(h*0.46f,dp(300));
+            float barW=dp(12),top=(h-barH)/2f,bottom=top+barH;
+            paint.setColor(0xCC000000);
+            rect.set(cx-dp(46),top-dp(64),cx+dp(46),bottom+dp(64));
+            c.drawRoundRect(rect,dp(24),dp(24),paint);
+            paint.setColor(0x55FFFFFF);
+            rect.set(cx-barW/2f,top,cx+barW/2f,bottom);
+            c.drawRoundRect(rect,barW/2f,barW/2f,paint);
             paint.setColor(Color.WHITE);
-            float fillTop = bottom - barH * Math.max(0f, Math.min(1f, shownLevel));
-            bar.set(cx - barW / 2f, fillTop, cx + barW / 2f, bottom);
-            c.drawRoundRect(bar, barW / 2f, barW / 2f, paint);
+            float fill=bottom-barH*Math.max(0f,Math.min(1f,shownLevel));
+            rect.set(cx-barW/2f,fill,cx+barW/2f,bottom);
+            c.drawRoundRect(rect,barW/2f,barW/2f,paint);
             paint.setTextAlign(Paint.Align.CENTER);
-            paint.setTextSize(dp(20));
-            c.drawText(volumeMode ? "VOL" : "BRI", cx, top - dp(16), paint);
             paint.setTextSize(dp(18));
-            c.drawText(Math.round(shownLevel * 100f) + "%", cx, bottom + dp(32), paint);
+            c.drawText(volumeMode?"VOL":"BRI",cx,top-dp(18),paint);
+            paint.setTextSize(dp(18));
+            c.drawText(Math.round(shownLevel*100f)+"%",cx,bottom+dp(34),paint);
         }
 
-        @Override public boolean onTouchEvent(MotionEvent e) {
-            if (getVisibility() != VISIBLE) return false;
-            float edge = getWidth() * 0.35f;
-            switch (e.getActionMasked()) {
+        @Override public boolean onTouchEvent(MotionEvent e){
+            if(getVisibility()!=VISIBLE)return false;
+            float edge=Math.min(dp(120),getWidth()*0.28f);
+            switch(e.getActionMasked()){
                 case MotionEvent.ACTION_DOWN:
-                    downX = e.getX();
-                    downY = e.getY();
-                    changing = false;
-                    if (downX < edge) volumeMode = false;
-                    else if (downX > getWidth() - edge) volumeMode = true;
+                    downX=e.getX();downY=e.getY();changing=false;
+                    if(downX<=edge)volumeMode=false;
+                    else if(downX>=getWidth()-edge)volumeMode=true;
                     else return false;
-                    startLevel = volumeMode ? getVolumeLevel() : getBrightnessLevel();
+                    startLevel=volumeMode?getVolumeLevel():getBrightnessLevel();
+                    shownLevel=startLevel;
+                    invalidate();
                     return true;
                 case MotionEvent.ACTION_MOVE:
-                    float totalDy = downY - e.getY();
-                    if (!changing && Math.abs(totalDy) >= dp(12)) changing = true;
-                    if (changing) {
-                        float travel = Math.max(dp(260), getHeight() * 0.42f);
-                        float level = Math.max(0f, Math.min(1f, startLevel + totalDy / travel));
-                        if (volumeMode) setVolumeLevel(level); else setBrightnessLevel(level);
-                        shownLevel = level;
-                        hideAt = System.currentTimeMillis() + 900;
-                        handler.removeCallbacks(hideRunnable);
-                        handler.postDelayed(hideRunnable, 950);
+                    float dy=downY-e.getY();
+                    if(!changing&&Math.abs(dy)>=dp(8))changing=true;
+                    if(changing){
+                        float travel=Math.max(dp(260),getHeight()*0.42f);
+                        float level=Math.max(0f,Math.min(1f,startLevel+dy/travel));
+                        if(volumeMode)setVolumeLevel(level);else setBrightnessLevel(level);
+                        shownLevel=level;
+                        hideAt=System.currentTimeMillis()+1000;
+                        handler.removeCallbacks(hide);handler.postDelayed(hide,1050);
                         invalidate();
                     }
                     return true;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
-                    if (changing) {
-                        hideAt = System.currentTimeMillis() + 700;
-                        handler.removeCallbacks(hideRunnable);
-                        handler.postDelayed(hideRunnable, 750);
-                    }
+                    hideAt=System.currentTimeMillis()+650;
+                    handler.removeCallbacks(hide);handler.postDelayed(hide,700);
                     return true;
-                default: return true;
+                default:return true;
             }
         }
-
-        private float getVolumeLevel() {
-            if (audio == null) return 0f;
-            int max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-            int current = audio.getStreamVolume(AudioManager.STREAM_MUSIC);
-            return max > 0 ? current / (float) max : 0f;
+        private float getVolumeLevel(){
+            if(audio==null)return 0f;
+            int max=audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+            return max>0?audio.getStreamVolume(AudioManager.STREAM_MUSIC)/(float)max:0f;
         }
-
-        private void setVolumeLevel(float level) {
-            if (audio == null) return;
-            int max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-            audio.setStreamVolume(AudioManager.STREAM_MUSIC, Math.round(level * max), 0);
+        private void setVolumeLevel(float level){
+            if(audio==null)return;
+            int max=audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC,Math.round(level*max),0);
         }
-
-        private float getBrightnessLevel() {
-            Window w = activity.getWindow();
-            float b = w.getAttributes().screenBrightness;
-            if (b >= 0f) return b;
-            try {
-                int system = Settings.System.getInt(activity.getContentResolver(), Settings.System.SCREEN_BRIGHTNESS);
-                return Math.max(0f, Math.min(1f, system / 255f));
-            } catch (Exception ignored) { return 0.5f; }
+        private float getBrightnessLevel(){
+            float b=activity.getWindow().getAttributes().screenBrightness;
+            if(b>=0f)return b;
+            try{return Math.max(0f,Math.min(1f,Settings.System.getInt(activity.getContentResolver(),Settings.System.SCREEN_BRIGHTNESS)/255f));}
+            catch(Exception e){return 0.5f;}
         }
-
-        private void setBrightnessLevel(float level) {
-            Window w = activity.getWindow();
-            WindowManager.LayoutParams lp = w.getAttributes();
-            lp.screenBrightness = Math.max(0.02f, Math.min(1f, level));
-            w.setAttributes(lp);
+        private void setBrightnessLevel(float level){
+            Window w=activity.getWindow();WindowManager.LayoutParams lp=w.getAttributes();
+            lp.screenBrightness=Math.max(0.02f,Math.min(1f,level));w.setAttributes(lp);
         }
-
-        private float dp(float v) { return v * getResources().getDisplayMetrics().density; }
+        private float dp(float v){return v*getResources().getDisplayMetrics().density;}
     }
 }
