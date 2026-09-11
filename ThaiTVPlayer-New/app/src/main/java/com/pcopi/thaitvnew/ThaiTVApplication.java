@@ -2,31 +2,53 @@ package com.pcopi.thaitvnew;
 
 import android.app.Activity;
 import android.app.Application;
+import android.content.ComponentCallbacks;
 import android.content.res.Configuration;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.media3.ui.PlayerView;
+import java.util.Collections;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 public class ThaiTVApplication extends Application {
+    private Activity currentActivity;
+    private final Handler main = new Handler(Looper.getMainLooper());
+    private final Map<PlayerView, Boolean> installed = Collections.synchronizedMap(new WeakHashMap<>());
+
     @Override public void onCreate() {
         super.onCreate();
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
-            @Override public void onActivityResumed(Activity activity) { installVolumeGesture(activity); }
-            @Override public void onActivityCreated(Activity a, android.os.Bundle b) {}
+            @Override public void onActivityResumed(Activity activity) {
+                currentActivity = activity;
+                installVolumeGesture(activity);
+            }
+            @Override public void onActivityCreated(Activity a, Bundle b) {}
             @Override public void onActivityStarted(Activity a) {}
             @Override public void onActivityPaused(Activity a) {}
             @Override public void onActivityStopped(Activity a) {}
-            @Override public void onActivitySaveInstanceState(Activity a, android.os.Bundle b) {}
-            @Override public void onActivityDestroyed(Activity a) {}
+            @Override public void onActivitySaveInstanceState(Activity a, Bundle b) {}
+            @Override public void onActivityDestroyed(Activity a) { if (currentActivity == a) currentActivity = null; }
+        });
+        registerComponentCallbacks(new ComponentCallbacks() {
+            @Override public void onConfigurationChanged(Configuration newConfig) {
+                if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE && currentActivity != null) {
+                    main.postDelayed(() -> installVolumeGesture(currentActivity), 250);
+                }
+            }
+            @Override public void onLowMemory() {}
         });
     }
 
     private void installVolumeGesture(Activity activity) {
         if (activity.getResources().getConfiguration().orientation != Configuration.ORIENTATION_LANDSCAPE) return;
         PlayerView playerView = findPlayerView(activity.getWindow().getDecorView());
-        if (playerView == null || playerView.getTag() != null) return;
-        playerView.setTag(Boolean.TRUE);
+        if (playerView == null || installed.containsKey(playerView)) return;
+        installed.put(playerView, Boolean.TRUE);
         playerView.setOnTouchListener(new View.OnTouchListener() {
             float downY;
             float startVolume;
