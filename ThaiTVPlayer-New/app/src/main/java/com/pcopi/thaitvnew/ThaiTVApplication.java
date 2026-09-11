@@ -3,7 +3,9 @@ package com.pcopi.thaitvnew;
 import android.app.Activity;
 import android.app.Application;
 import android.content.ComponentCallbacks;
+import android.content.Context;
 import android.content.res.Configuration;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -37,7 +39,7 @@ public class ThaiTVApplication extends Application {
         registerComponentCallbacks(new ComponentCallbacks() {
             @Override public void onConfigurationChanged(Configuration newConfig) {
                 if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE && currentActivity != null) {
-                    main.postDelayed(() -> installVolumeGesture(currentActivity), 250);
+                    main.postDelayed(() -> installVolumeGesture(currentActivity), 300);
                 }
             }
             @Override public void onLowMemory() {}
@@ -49,37 +51,60 @@ public class ThaiTVApplication extends Application {
         PlayerView playerView = findPlayerView(activity.getWindow().getDecorView());
         if (playerView == null || installed.containsKey(playerView)) return;
         installed.put(playerView, Boolean.TRUE);
+
         playerView.setOnTouchListener(new View.OnTouchListener() {
             float downY;
-            float startVolume;
+            float lastY;
             boolean changingVolume;
+            int accumulatedSteps;
 
             @Override public boolean onTouch(View v, MotionEvent event) {
-                if (playerView.getPlayer() == null) return false;
                 switch (event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN:
                         downY = event.getY();
-                        startVolume = playerView.getPlayer().getVolume();
+                        lastY = downY;
                         changingVolume = false;
+                        accumulatedSteps = 0;
                         return false;
+
                     case MotionEvent.ACTION_MOVE:
-                        float dy = downY - event.getY();
-                        if (Math.abs(dy) > 12f) changingVolume = true;
+                        float totalDy = downY - event.getY();
+                        if (!changingVolume && Math.abs(totalDy) >= dp(activity, 18)) {
+                            changingVolume = true;
+                        }
                         if (changingVolume) {
-                            float change = dy / Math.max(1f, v.getHeight());
-                            float volume = Math.max(0f, Math.min(1f, startVolume + change));
-                            playerView.getPlayer().setVolume(volume);
+                            float delta = lastY - event.getY();
+                            lastY = event.getY();
+                            accumulatedSteps += Math.round(delta / dp(activity, 45));
+                            if (accumulatedSteps != 0) {
+                                int direction = accumulatedSteps > 0 ? 1 : -1;
+                                accumulatedSteps -= direction;
+                                AudioManager am = (AudioManager) activity.getSystemService(Context.AUDIO_SERVICE);
+                                if (am != null) {
+                                    am.adjustStreamVolume(
+                                        AudioManager.STREAM_MUSIC,
+                                        direction > 0 ? AudioManager.ADJUST_RAISE : AudioManager.ADJUST_LOWER,
+                                        AudioManager.FLAG_SHOW_UI | AudioManager.FLAG_PLAY_SOUND
+                                    );
+                                }
+                            }
                             return true;
                         }
                         return false;
+
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
                         return changingVolume;
+
                     default:
                         return false;
                 }
             }
         });
+    }
+
+    private float dp(Activity activity, float value) {
+        return value * activity.getResources().getDisplayMetrics().density;
     }
 
     private PlayerView findPlayerView(View view) {
