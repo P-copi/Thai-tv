@@ -1,13 +1,19 @@
 #EXTM3U
-# Thai TV Playlist - stable/public streams
-# Channel 3 HD is prioritized with multiple fallback streams.
+# Thai TV Playlist - 3HD prioritized
+# 3HD DASH stream with ClearKey metadata is listed first.
 
-#EXTINF:-1 tvg-id="Channel3.th" tvg-name="3HD" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/d/d3/Ch3HDLogo.png" group-title="01 ฟรีทีวีไทย",01 ช่อง 3 HD
+#EXTINF:-1 tvg-chno="33" ch-number="3" tvg-id="3 HD.th" tvg-name="3 HD" tvg-logo="https://media-mvtv-app.imgix.net/uploads/channel/132_y_4dCbQViIft2z6KSY9mproWPnRExaDgJG.png" group-title="01 ฟรีทีวีไทย",3 HD
+#KODIPROP:inputstreamaddon=inputstream.adaptive
+#KODIPROP:inputstream.adaptive.manifest_type=dash
+#KODIPROP:inputstream.adaptive.license_type=clearkey
+#KODIPROP:inputstream.adaptive.license_key=9d76aea451d441a4913d4d70c4e586ab:051027a6ff54494b949ba792928e9008
+https://cco-streamer1.cdn.3bbtv.com:8443/3bb/live/33/33.mpd
+
+#EXTINF:-1 tvg-chno="33" ch-number="3" tvg-id="3 HD.th" tvg-name="3 HD" tvg-logo="https://media-mvtv-app.imgix.net/uploads/channel/132_y_4dCbQViIft2z6KSY9mproWPnRExaDgJG.png" group-title="06 BACKUP STREAMS",3 HD - HLS Backup
 https://ch3-33-web.cdn.byteark.com/live/playlist.m3u8
-#EXTINF:-1 tvg-id="Channel3.th" tvg-name="3HD" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/d/d3/Ch3HDLogo.png" group-title="06 BACKUP STREAMS",01 ช่อง 3 HD - Backup 1
+
+#EXTINF:-1 tvg-chno="33" ch-number="3" tvg-id="3 HD.th" tvg-name="3 HD" tvg-logo="https://media-mvtv-app.imgix.net/uploads/channel/132_y_4dCbQViIft2z6KSY9mproWPnRExaDgJG.png" group-title="06 BACKUP STREAMS",3 HD - Backup 2
 https://freelive.inwstream.com:1936/freelive-edge/3hd/playlist.m3u8
-#EXTINF:-1 tvg-id="Channel3.th" tvg-name="3HD" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/d/d3/Ch3HDLogo.png" group-title="06 BACKUP STREAMS",01 ช่อง 3 HD - Backup 2
-https://cdn6.goprimetime.info/feed/202205171929/ch3hd/index.m3u8
 
 #EXTINF:-1 tvg-id="Channel5.th" tvg-name="5HD" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_%E0%B8%8A%E0%B9%88%E0%B8%AD%E0%B8%87_5.png" group-title="01 ฟรีทีวีไทย",02 ช่อง 5 HD
 https://639bc5877c5fe.streamlock.net/tv5hdlive/tv5hdlive/playlist.m3u8
