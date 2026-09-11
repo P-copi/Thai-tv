@@ -24,10 +24,9 @@ public class ThaiTVApplication extends Application {
 
     private void installVolumeGesture(Activity activity) {
         if (activity.getResources().getConfiguration().orientation != Configuration.ORIENTATION_LANDSCAPE) return;
-        View root = activity.getWindow().getDecorView();
-        PlayerView playerView = findPlayerView(root);
-        if (playerView == null || playerView.getTag(R.id.volume_gesture_installed) != null) return;
-        playerView.setTag(R.id.volume_gesture_installed, Boolean.TRUE);
+        PlayerView playerView = findPlayerView(activity.getWindow().getDecorView());
+        if (playerView == null || playerView.getTag() != null) return;
+        playerView.setTag(Boolean.TRUE);
         playerView.setOnTouchListener(new View.OnTouchListener() {
             float downY;
             float startVolume;
