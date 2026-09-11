@@ -14,14 +14,12 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
-import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
-import androidx.media3.ui.PlayerView;
 import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -34,10 +32,7 @@ public class ThaiTVApplication extends Application {
     @Override public void onCreate() {
         super.onCreate();
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
-            @Override public void onActivityResumed(Activity activity) {
-                currentActivity = activity;
-                installOverlay(activity);
-            }
+            @Override public void onActivityResumed(Activity activity) { currentActivity = activity; installOverlay(activity); }
             @Override public void onActivityCreated(Activity a, Bundle b) {}
             @Override public void onActivityStarted(Activity a) {}
             @Override public void onActivityPaused(Activity a) {}
@@ -51,9 +46,7 @@ public class ThaiTVApplication extends Application {
         });
         registerComponentCallbacks(new ComponentCallbacks() {
             @Override public void onConfigurationChanged(Configuration newConfig) {
-                if (currentActivity != null) {
-                    main.postDelayed(() -> installOverlay(currentActivity), 350);
-                }
+                if (currentActivity != null) main.postDelayed(() -> installOverlay(currentActivity), 350);
             }
             @Override public void onLowMemory() {}
         });
@@ -63,7 +56,7 @@ public class ThaiTVApplication extends Application {
         boolean landscape = activity.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
         VolumeBrightnessOverlay overlay = overlays.get(activity);
         if (!landscape) {
-            if (overlay != null) overlay.setEnabled(false);
+            if (overlay != null) overlay.setOverlayEnabled(false);
             return;
         }
         if (overlay == null) {
@@ -72,7 +65,7 @@ public class ThaiTVApplication extends Application {
             FrameLayout decor = findDecorContent(activity);
             if (decor != null) decor.addView(overlay, new FrameLayout.LayoutParams(-1, -1));
         }
-        overlay.setEnabled(true);
+        overlay.setOverlayEnabled(true);
         overlay.bringToFront();
     }
 
@@ -90,93 +83,99 @@ public class ThaiTVApplication extends Application {
         private final AudioManager audio;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF bar = new RectF();
-        private float downX, downY, lastY;
+        private float downX, downY;
         private float startLevel;
         private boolean changing;
         private boolean volumeMode;
-        private float shownLevel;
+        private float shownLevel = -1f;
         private long hideAt;
         private final Handler handler = new Handler(Looper.getMainLooper());
-        private final Runnable hideRunnable = () -> { if (System.currentTimeMillis() >= hideAt) { shownLevel = -1f; invalidate(); } };
+        private final Runnable hideRunnable = () -> {
+            if (System.currentTimeMillis() >= hideAt) { shownLevel = -1f; invalidate(); }
+        };
 
         VolumeBrightnessOverlay(Activity a) {
             super(a);
             activity = a;
             audio = (AudioManager) a.getSystemService(Context.AUDIO_SERVICE);
             setBackgroundColor(Color.TRANSPARENT);
-            setClickable(false);
+            setClickable(true);
             setFocusable(false);
         }
 
-        void setEnabled(boolean enabled) {
+        void setOverlayEnabled(boolean enabled) {
             setVisibility(enabled ? VISIBLE : GONE);
+            if (!enabled) { shownLevel = -1f; handler.removeCallbacks(hideRunnable); }
         }
 
         void remove() {
-            ViewParentCompat.remove(this);
+            handler.removeCallbacks(hideRunnable);
+            if (getParent() instanceof ViewGroup) ((ViewGroup) getParent()).removeView(this);
         }
 
         @Override protected void onDraw(Canvas c) {
             super.onDraw(c);
             if (shownLevel < 0f || !isShown()) return;
             float w = getWidth(), h = getHeight();
-            float cx = volumeMode ? w * 0.78f : w * 0.22f;
-            float barH = Math.min(h * 0.42f, dp(260));
+            float cx = volumeMode ? w * 0.82f : w * 0.18f;
+            float barH = Math.min(h * 0.42f, dp(280));
             float barW = dp(10);
             float top = (h - barH) / 2f;
             float bottom = top + barH;
 
             paint.setColor(0xB8000000);
-            bar.set(cx - dp(42), top - dp(58), cx + dp(42), bottom + dp(58));
+            bar.set(cx - dp(44), top - dp(62), cx + dp(44), bottom + dp(62));
             c.drawRoundRect(bar, dp(22), dp(22), paint);
-
             paint.setColor(0x66FFFFFF);
             bar.set(cx - barW / 2f, top, cx + barW / 2f, bottom);
             c.drawRoundRect(bar, barW / 2f, barW / 2f, paint);
-
             paint.setColor(Color.WHITE);
             float fillTop = bottom - barH * Math.max(0f, Math.min(1f, shownLevel));
             bar.set(cx - barW / 2f, fillTop, cx + barW / 2f, bottom);
             c.drawRoundRect(bar, barW / 2f, barW / 2f, paint);
-
             paint.setTextAlign(Paint.Align.CENTER);
-            paint.setTextSize(dp(30));
-            c.drawText(volumeMode ? "🔊" : "☀", cx, top - dp(16), paint);
+            paint.setTextSize(dp(20));
+            c.drawText(volumeMode ? "VOL" : "BRI", cx, top - dp(16), paint);
             paint.setTextSize(dp(18));
             c.drawText(Math.round(shownLevel * 100f) + "%", cx, bottom + dp(32), paint);
         }
 
         @Override public boolean onTouchEvent(MotionEvent e) {
             if (getVisibility() != VISIBLE) return false;
+            float edge = getWidth() * 0.35f;
             switch (e.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     downX = e.getX();
-                    downY = lastY = e.getY();
+                    downY = e.getY();
                     changing = false;
-                    volumeMode = downX >= getWidth() / 2f;
+                    if (downX < edge) volumeMode = false;
+                    else if (downX > getWidth() - edge) volumeMode = true;
+                    else return false;
                     startLevel = volumeMode ? getVolumeLevel() : getBrightnessLevel();
-                    return false;
+                    return true;
                 case MotionEvent.ACTION_MOVE:
                     float totalDy = downY - e.getY();
-                    if (!changing && Math.abs(totalDy) >= dp(18)) changing = true;
+                    if (!changing && Math.abs(totalDy) >= dp(12)) changing = true;
                     if (changing) {
-                        float delta = (lastY - e.getY()) / Math.max(dp(260), getHeight() * 0.42f);
-                        lastY = e.getY();
-                        float level = Math.max(0f, Math.min(1f, startLevel + (downY - e.getY()) / Math.max(dp(260), getHeight() * 0.42f)));
+                        float travel = Math.max(dp(260), getHeight() * 0.42f);
+                        float level = Math.max(0f, Math.min(1f, startLevel + totalDy / travel));
                         if (volumeMode) setVolumeLevel(level); else setBrightnessLevel(level);
                         shownLevel = level;
                         hideAt = System.currentTimeMillis() + 900;
                         handler.removeCallbacks(hideRunnable);
                         handler.postDelayed(hideRunnable, 950);
                         invalidate();
-                        return true;
                     }
-                    return false;
+                    return true;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
-                    if (changing) { hideAt = System.currentTimeMillis() + 700; handler.postDelayed(hideRunnable, 750); return true; }
-                    return false;
-                default: return false;
+                    if (changing) {
+                        hideAt = System.currentTimeMillis() + 700;
+                        handler.removeCallbacks(hideRunnable);
+                        handler.postDelayed(hideRunnable, 750);
+                    }
+                    return true;
+                default: return true;
             }
         }
 
@@ -190,8 +189,7 @@ public class ThaiTVApplication extends Application {
         private void setVolumeLevel(float level) {
             if (audio == null) return;
             int max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-            int value = Math.round(level * max);
-            audio.setStreamVolume(AudioManager.STREAM_MUSIC, value, 0);
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, Math.round(level * max), 0);
         }
 
         private float getBrightnessLevel() {
@@ -212,11 +210,5 @@ public class ThaiTVApplication extends Application {
         }
 
         private float dp(float v) { return v * getResources().getDisplayMetrics().density; }
-    }
-
-    private static class ViewParentCompat {
-        static void remove(View v) {
-            if (v.getParent() instanceof ViewGroup) ((ViewGroup) v.getParent()).removeView(v);
-        }
     }
 }
