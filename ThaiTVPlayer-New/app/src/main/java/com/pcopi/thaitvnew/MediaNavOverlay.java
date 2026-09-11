@@ -16,6 +16,10 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
 import androidx.media3.common.MediaItem;
+import androidx.media3.datasource.DefaultDataSource;
+import androidx.media3.datasource.DefaultHttpDataSource;
+import androidx.media3.exoplayer.source.MediaSource;
+import androidx.media3.exoplayer.source.ProgressiveMediaSource;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -235,7 +239,8 @@ public class MediaNavOverlay extends FrameLayout {
 
     private void invokePlay(Item x) {
         try {
-            Field f = a.getClass().getDeclaredField("player");
+            Field f = findPlayerField(a.getClass());
+            if (f == null) throw new IllegalStateException("player unavailable");
             f.setAccessible(true);
             Object p = f.get(a);
             if (p == null) throw new IllegalStateException("player unavailable");
@@ -244,14 +249,48 @@ public class MediaNavOverlay extends FrameLayout {
             if (mime == null || mime.isEmpty()) mime = guessMime(x.name, x.type);
             if (mime != null && !mime.isEmpty()) b.setMimeType(mime);
             MediaItem item = b.build();
-            Method set = p.getClass().getMethod("setMediaItem", MediaItem.class);
-            Method prepare = p.getClass().getMethod("prepare");
-            Method play = p.getClass().getMethod("play");
-            set.invoke(p, item); prepare.invoke(p); play.invoke(p);
+
+            // MainActivity uses an HTTP-only datasource for network IPTV. For local
+            // content:// media we build a content-aware MediaSource here so Android
+            // MediaStore URIs are readable without changing the working playlist path.
+            DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
+                .setUserAgent("Mozilla/5.0 (Android) ThaiTVPlayer/3.3")
+                .setConnectTimeoutMs(15000).setReadTimeoutMs(25000)
+                .setAllowCrossProtocolRedirects(true);
+            DefaultDataSource.Factory ds = new DefaultDataSource.Factory(a, http);
+            MediaSource source = new ProgressiveMediaSource.Factory(ds).createMediaSource(item);
+
+            Method setSource = findMethod(p.getClass(), "setMediaSource", MediaSource.class);
+            Method prepare = findMethod(p.getClass(), "prepare");
+            Method play = findMethod(p.getClass(), "play");
+            if (setSource == null || prepare == null || play == null) throw new IllegalStateException("Media3 player method unavailable");
+            setSource.invoke(p, source);
+            prepare.invoke(p);
+            play.invoke(p);
             close();
         } catch (Exception e) {
-            Toast.makeText(a, "เปิดไฟล์ไม่ได้: " + (e.getCause() == null ? e.getMessage() : e.getCause().getMessage()), Toast.LENGTH_SHORT).show();
+            Throwable t = e.getCause() == null ? e : e.getCause();
+            String msg = t.getMessage() == null ? t.getClass().getSimpleName() : t.getMessage();
+            Toast.makeText(a, "เปิดไฟล์ไม่ได้: " + msg, Toast.LENGTH_LONG).show();
         }
+    }
+
+    private Field findPlayerField(Class<?> c) {
+        Class<?> k = c;
+        while (k != null) {
+            try { return k.getDeclaredField("player"); } catch (NoSuchFieldException ignored) { k = k.getSuperclass(); }
+        }
+        return null;
+    }
+
+    private Method findMethod(Class<?> c, String name, Class<?>... types) {
+        Class<?> k = c;
+        while (k != null) {
+            try { Method m = k.getDeclaredMethod(name, types); m.setAccessible(true); return m; }
+            catch (NoSuchMethodException ignored) { k = k.getSuperclass(); }
+        }
+        try { Method m = c.getMethod(name, types); m.setAccessible(true); return m; }
+        catch (Exception ignored) { return null; }
     }
 
     private String guessMime(String name, String type) {
