@@ -3,6 +3,7 @@ package com.pcopi.youtubeprivate;
 import android.app.*;
 import android.os.*;
 import android.content.*;
+import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
@@ -15,6 +16,9 @@ import java.util.*;
 public class MainActivity extends Activity {
     WebView web;
     EditText search;
+    View customView;
+    WebChromeClient.CustomViewCallback customViewCallback;
+    boolean fullscreen=false;
     final String HOME="https://m.youtube.com/";
     int red=Color.rgb(255,0,51);
     final Set<String> blockedHosts=new HashSet<>(Arrays.asList(
@@ -38,8 +42,36 @@ public class MainActivity extends Activity {
         return false;
     }
 
-    WebResourceResponse blockedResponse(){
-        return new WebResourceResponse("text/plain","utf-8",null);
+    WebResourceResponse blockedResponse(){ return new WebResourceResponse("text/plain","utf-8",null); }
+
+    void enterFullscreen(View view, WebChromeClient.CustomViewCallback callback){
+        if(fullscreen) return;
+        fullscreen=true; customView=view; customViewCallback=callback;
+        ((ViewGroup)web.getParent()).removeView(web);
+        FrameLayout full=new FrameLayout(this); full.setBackgroundColor(Color.BLACK); full.addView(view,new FrameLayout.LayoutParams(-1,-1));
+        setContentView(full);
+        getWindow().getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|
+            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|
+            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+    }
+
+    void exitFullscreen(){
+        if(!fullscreen)return;
+        fullscreen=false;
+        if(customViewCallback!=null) customViewCallback.onCustomViewHidden();
+        customView=null; customViewCallback=null;
+        getWindow().getDecorView().setSystemUiVisibility(0);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        buildUi();
+        load(HOME);
+    }
+
+    void hideYoutubeAds(){
+        if(web==null)return;
+        String js="(function(){try{var s='ytd-display-ad-renderer,ytd-ad-slot-renderer,ytd-promoted-sparkles-web-renderer,ytd-in-feed-ad-layout-renderer,ytd-banner-promo-renderer,ytd-statement-banner-renderer,ytd-mealbar-promo-renderer,#player-ads,.ytp-ad-module,.ytp-ad-overlay-container,.ytp-ad-text-overlay,.ytp-ad-player-overlay';document.querySelectorAll(s).forEach(function(e){e.style.setProperty('display','none','important');});}catch(e){}})();";
+        web.evaluateJavascript(js,null);
     }
 
     void buildUi(){
@@ -47,6 +79,7 @@ public class MainActivity extends Activity {
         LinearLayout bar=new LinearLayout(this); bar.setGravity(Gravity.CENTER_VERTICAL); bar.setPadding(12,8,10,8); bar.setBackgroundColor(Color.rgb(20,20,20));
         TextView logo=label("▶",24); logo.setTextColor(red); bar.addView(logo,new LinearLayout.LayoutParams(40,48));
         TextView title=label("YouTube ส่วนตัว",19); title.setGravity(Gravity.CENTER_VERTICAL); bar.addView(title,new LinearLayout.LayoutParams(0,48,1));
+        TextView fs=label("⛶",25); fs.setOnClickListener(v->enterAppFullscreen()); bar.addView(fs,new LinearLayout.LayoutParams(48,48));
         TextView open=label("↗",25); open.setOnClickListener(v->openYouTubeApp()); bar.addView(open,new LinearLayout.LayoutParams(48,48));
         root.addView(bar);
 
@@ -58,7 +91,18 @@ public class MainActivity extends Activity {
         root.addView(searchRow);
 
         web=new WebView(this); web.setBackgroundColor(Color.BLACK); web.getSettings().setJavaScriptEnabled(true); web.getSettings().setDomStorageEnabled(true); web.getSettings().setMediaPlaybackRequiresUserGesture(true); web.getSettings().setBuiltInZoomControls(false); web.getSettings().setSupportZoom(false); web.getSettings().setUserAgentString("Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140 Mobile Safari/537.36");
+        web.setWebChromeClient(new WebChromeClient(){
+            @Override public void onShowCustomView(View view, CustomViewCallback callback){ enterFullscreen(view,callback); }
+            @Override public void onHideCustomView(){ exitFullscreen(); }
+        });
         web.setWebViewClient(new WebViewClient(){
+            @Override public void onPageFinished(WebView v,String url){
+                super.onPageFinished(v,url);
+                hideYoutubeAds();
+                v.postDelayed(()->hideYoutubeAds(),700);
+                v.postDelayed(()->hideYoutubeAds(),1800);
+                v.postDelayed(()->hideYoutubeAds(),3500);
+            }
             @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r){
                 String u=r.getUrl().toString();
                 if(isBlocked(u)) return blockedResponse();
@@ -75,11 +119,15 @@ public class MainActivity extends Activity {
         LinearLayout nav=new LinearLayout(this); nav.setGravity(Gravity.CENTER); nav.setPadding(4,5,4,5); nav.setBackgroundColor(Color.rgb(20,20,20));
         TextView home=label("⌂\nหน้าแรก",12); TextView back=label("‹\nย้อนกลับ",12); TextView forward=label("›\nถัดไป",12); TextView yt=label("▶\nYouTube",12); home.setTextColor(Color.WHITE); yt.setTextColor(red);
         home.setOnClickListener(v->load(HOME)); back.setOnClickListener(v->{if(web.canGoBack())web.goBack();}); forward.setOnClickListener(v->{if(web.canGoForward())web.goForward();}); yt.setOnClickListener(v->openYouTubeApp());
-        for(TextView t:new TextView[]{home,back,forward,yt}) nav.addView(t,new LinearLayout.LayoutParams(0,58,1)); root.addView(nav);
-        setContentView(root);
+        for(TextView t:new TextView[]{home,back,forward,yt}) nav.addView(t,new LinearLayout.LayoutParams(0,58,1)); root.addView(nav); setContentView(root);
+    }
+
+    void enterAppFullscreen(){
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
     }
 
     void load(String url){ web.loadUrl(url); }
     void openYouTubeApp(){ try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://www.youtube.com/")));}catch(Exception ignored){} }
-    @Override public void onBackPressed(){ if(web!=null&&web.canGoBack()) web.goBack(); else super.onBackPressed(); }
+    @Override public void onBackPressed(){ if(fullscreen){exitFullscreen();return;} if(web!=null&&web.canGoBack()) web.goBack(); else super.onBackPressed(); }
 }
