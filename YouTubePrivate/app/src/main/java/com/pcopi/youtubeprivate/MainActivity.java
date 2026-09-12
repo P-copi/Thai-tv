@@ -10,17 +10,33 @@ import android.view.*;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.*;
 import android.widget.*;
+import java.util.*;
 
 public class MainActivity extends Activity {
     WebView web;
     EditText search;
     final String HOME="https://m.youtube.com/";
     int red=Color.rgb(255,0,51);
+    final Set<String> blockedHosts=new HashSet<>(Arrays.asList(
+        "doubleclick.net","googlesyndication.com","googleadservices.com",
+        "adservice.google.com","adnxs.com","adsrvr.org","taboola.com",
+        "outbrain.com","scorecardresearch.com"
+    ));
 
     @Override public void onCreate(Bundle b){ super.onCreate(b); buildUi(); load(HOME); }
 
     TextView label(String s,int size){ TextView t=new TextView(this); t.setText(s); t.setTextColor(Color.WHITE); t.setTextSize(size); t.setGravity(Gravity.CENTER); t.setPadding(8,4,8,4); return t; }
     GradientDrawable bg(int color,float r){ GradientDrawable g=new GradientDrawable(); g.setColor(color); g.setCornerRadius(r); return g; }
+
+    boolean isBlocked(String url){
+        try{
+            String host=Uri.parse(url).getHost();
+            if(host==null)return false;
+            host=host.toLowerCase(Locale.US);
+            for(String h:blockedHosts) if(host.equals(h)||host.endsWith("."+h)) return true;
+        }catch(Exception ignored){}
+        return false;
+    }
 
     void buildUi(){
         LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(Color.rgb(15,15,15));
@@ -38,7 +54,18 @@ public class MainActivity extends Activity {
         root.addView(searchRow);
 
         web=new WebView(this); web.setBackgroundColor(Color.BLACK); web.getSettings().setJavaScriptEnabled(true); web.getSettings().setDomStorageEnabled(true); web.getSettings().setMediaPlaybackRequiresUserGesture(true); web.getSettings().setBuiltInZoomControls(false); web.getSettings().setSupportZoom(false); web.getSettings().setUserAgentString("Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140 Mobile Safari/537.36");
-        web.setWebViewClient(new WebViewClient(){ @Override public boolean shouldOverrideUrlLoading(WebView v,String u){ if(u.startsWith("https://www.youtube.com")||u.startsWith("https://m.youtube.com")||u.startsWith("https://youtube.com")) return false; try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(u)));}catch(Exception ignored){} return true; }});
+        web.setWebViewClient(new WebViewClient(){
+            @Override public boolean shouldInterceptRequest(WebView v, WebResourceRequest r){
+                String u=r.getUrl().toString();
+                if(isBlocked(u)) return new WebResourceResponse("text/plain","utf-8",null);
+                return super.shouldInterceptRequest(v,r);
+            }
+            @Override public WebResourceResponse shouldInterceptRequest(WebView v,String u){
+                if(isBlocked(u)) return new WebResourceResponse("text/plain","utf-8",null);
+                return super.shouldInterceptRequest(v,u);
+            }
+            @Override public boolean shouldOverrideUrlLoading(WebView v,String u){ if(u.startsWith("https://www.youtube.com")||u.startsWith("https://m.youtube.com")||u.startsWith("https://youtube.com")) return false; try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(u)));}catch(Exception ignored){} return true; }
+        });
         root.addView(web,new LinearLayout.LayoutParams(-1,0,1));
 
         LinearLayout nav=new LinearLayout(this); nav.setGravity(Gravity.CENTER); nav.setPadding(4,5,4,5); nav.setBackgroundColor(Color.rgb(20,20,20));
