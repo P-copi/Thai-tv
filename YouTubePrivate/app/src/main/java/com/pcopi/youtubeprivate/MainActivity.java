@@ -14,7 +14,7 @@ import android.widget.*;
 import java.util.*;
 
 public class MainActivity extends Activity {
-    WebView web; EditText search; View customView; WebChromeClient.CustomViewCallback customCallback; View rootView;
+    WebView web; EditText search; View customView; View rootView; WebChromeClient.CustomViewCallback customCallback;
     final String HOME="https://m.youtube.com/"; int red=Color.rgb(255,0,51);
     final Set<String> blockedHosts=new HashSet<>(Arrays.asList("doubleclick.net","googlesyndication.com","googleadservices.com","adservice.google.com","adnxs.com","adsrvr.org","taboola.com","outbrain.com","scorecardresearch.com"));
     @Override public void onCreate(Bundle b){super.onCreate(b);buildUi();load(HOME);}
@@ -27,23 +27,23 @@ public class MainActivity extends Activity {
     void enterFull(View v,WebChromeClient.CustomViewCallback cb){
         if(customView!=null){cb.onCustomViewHidden();return;}
         customView=v;customCallback=cb;
-        if(rootView!=null)rootView.setVisibility(View.GONE);
         v.setBackgroundColor(Color.BLACK);
         setContentView(v);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         hideBars();
+        v.setSystemUiVisibility(5894|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     }
     void exitFull(){
         if(customView==null)return;
-        View old=customView; customView=null;
+        View old=customView;customView=null;
         if(customCallback!=null){customCallback.onCustomViewHidden();customCallback=null;}
-        if(rootView!=null){setContentView(rootView);rootView.setVisibility(View.VISIBLE);}
+        setContentView(rootView);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
         showBars();
-        old.setVisibility(View.GONE);
+        old.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
     }
     void buildUi(){
-        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(Color.rgb(15,15,15));rootView=root;
+        LinearLayout root=new LinearLayout(this);rootView=root;root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(Color.rgb(15,15,15));
         LinearLayout bar=new LinearLayout(this);bar.setGravity(Gravity.CENTER_VERTICAL);bar.setPadding(12,8,10,8);bar.setBackgroundColor(Color.rgb(20,20,20));
         TextView logo=label("▶",24);logo.setTextColor(red);bar.addView(logo,new LinearLayout.LayoutParams(40,48));TextView title=label("YouTube ส่วนตัว",19);title.setGravity(Gravity.CENTER_VERTICAL);bar.addView(title,new LinearLayout.LayoutParams(0,48,1));TextView open=label("↗",25);open.setOnClickListener(v->openYouTubeApp());bar.addView(open,new LinearLayout.LayoutParams(48,48));root.addView(bar);
         LinearLayout sr=new LinearLayout(this);sr.setPadding(12,8,12,8);sr.setGravity(Gravity.CENTER_VERTICAL);search=new EditText(this);search.setSingleLine(true);search.setHint("ค้นหา YouTube...");search.setHintTextColor(Color.LTGRAY);search.setTextColor(Color.WHITE);search.setTextSize(16);search.setImeOptions(EditorInfo.IME_ACTION_SEARCH);search.setBackground(bg(Color.rgb(38,38,38),60));sr.addView(search,new LinearLayout.LayoutParams(0,50,1));TextView go=label("ค้นหา",15);go.setBackground(bg(red,50));LinearLayout.LayoutParams gp=new LinearLayout.LayoutParams(82,50);gp.setMargins(8,0,0,0);sr.addView(go,gp);View.OnClickListener sl=v->{String q=search.getText().toString().trim();if(!q.isEmpty())load("https://m.youtube.com/results?search_query="+Uri.encode(q));};go.setOnClickListener(sl);search.setOnEditorActionListener((v,a,e)->{sl.onClick(v);return true;});root.addView(sr);
