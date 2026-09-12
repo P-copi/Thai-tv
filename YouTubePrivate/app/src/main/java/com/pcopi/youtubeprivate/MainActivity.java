@@ -6,6 +6,7 @@ import android.content.*;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.view.*;
 import android.view.inputmethod.EditorInfo;
@@ -14,7 +15,7 @@ import android.widget.*;
 import java.util.*;
 
 public class MainActivity extends Activity {
-    WebView web; EditText search; View customView; View rootView; WebChromeClient.CustomViewCallback customCallback;
+    WebView web; EditText search; View customView; View rootView; FrameLayout fullFrame; WebChromeClient.CustomViewCallback customCallback;
     final String HOME="https://m.youtube.com/"; int red=Color.rgb(255,0,51);
     final Set<String> blockedHosts=new HashSet<>(Arrays.asList("doubleclick.net","googlesyndication.com","googleadservices.com","adservice.google.com","adnxs.com","adsrvr.org","taboola.com","outbrain.com","scorecardresearch.com"));
     @Override public void onCreate(Bundle b){super.onCreate(b);buildUi();load(HOME);}
@@ -24,19 +25,57 @@ public class MainActivity extends Activity {
     WebResourceResponse blockedResponse(){return new WebResourceResponse("text/plain","utf-8",null);}
     void hideBars(){getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);getWindow().getDecorView().setSystemUiVisibility(5894|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);}
     void showBars(){getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);}
+
+    class FullscreenFrameLayout extends FrameLayout {
+        float downX,downY; boolean adjusting; final AudioManager audio=(AudioManager)getSystemService(AUDIO_SERVICE);
+        FullscreenFrameLayout(Context c){super(c);setBackgroundColor(Color.BLACK);setFocusable(true);}
+        @Override public boolean onInterceptTouchEvent(android.view.MotionEvent e){
+            switch(e.getActionMasked()){
+                case MotionEvent.ACTION_DOWN: downX=e.getX();downY=e.getY();adjusting=false;break;
+                case MotionEvent.ACTION_MOVE:
+                    float dx=e.getX()-downX,dy=e.getY()-downY;
+                    if(Math.abs(dy)>28 && Math.abs(dy)>Math.abs(dx)*1.15f){adjusting=true;return true;}
+                    break;
+                case MotionEvent.ACTION_UP: case MotionEvent.ACTION_CANCEL: adjusting=false;break;
+            }
+            return super.onInterceptTouchEvent(e);
+        }
+        @Override public boolean onTouchEvent(MotionEvent e){
+            if(!adjusting)return super.onTouchEvent(e);
+            if(e.getActionMasked()==MotionEvent.ACTION_MOVE || e.getActionMasked()==MotionEvent.ACTION_UP){
+                float dy=e.getY()-downY; float amount=Math.min(1f,Math.abs(dy)/Math.max(1f,getHeight()*0.55f));
+                boolean right=e.getX()>getWidth()/2f;
+                if(right){
+                    int max=audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC); int cur=audio.getStreamVolume(AudioManager.STREAM_MUSIC);
+                    int target=(int)Math.round(cur+(downY-e.getY())/getHeight()*max*1.5f); target=Math.max(0,Math.min(max,target)); audio.setStreamVolume(AudioManager.STREAM_MUSIC,target,0);
+                    if(e.getActionMasked()==MotionEvent.ACTION_UP) Toast.makeText(MainActivity.this,"🔊 เสียง "+Math.round(target*100f/max)+"%",Toast.LENGTH_SHORT).show();
+                }else{
+                    WindowManager.LayoutParams p=getWindow().getAttributes(); float cur=p.screenBrightness;
+                    if(cur<0)cur=0.5f; float target=Math.max(0.05f,Math.min(1f,cur+(downY-e.getY())/getHeight()*1.5f)); p.screenBrightness=target; getWindow().setAttributes(p);
+                    if(e.getActionMasked()==MotionEvent.ACTION_UP) Toast.makeText(MainActivity.this,"☀ ความสว่าง "+Math.round(target*100f)+"%",Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            }
+            return true;
+        }
+    }
+
     void enterFull(View v,WebChromeClient.CustomViewCallback cb){
         if(customView!=null){cb.onCustomViewHidden();return;}
         customView=v;customCallback=cb;
         v.setBackgroundColor(Color.BLACK);
-        setContentView(v);
+        fullFrame=new FullscreenFrameLayout(this);
+        fullFrame.addView(v,new FrameLayout.LayoutParams(-1,-1));
+        setContentView(fullFrame);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         hideBars();
-        v.setSystemUiVisibility(5894|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        fullFrame.setSystemUiVisibility(5894|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     }
     void exitFull(){
         if(customView==null)return;
         View old=customView;customView=null;
         if(customCallback!=null){customCallback.onCustomViewHidden();customCallback=null;}
+        fullFrame=null;
         setContentView(rootView);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
         showBars();
