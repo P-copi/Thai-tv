@@ -38,6 +38,10 @@ public class MainActivity extends Activity {
         return false;
     }
 
+    WebResourceResponse blockedResponse(){
+        return new WebResourceResponse("text/plain","utf-8",null);
+    }
+
     void buildUi(){
         LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(Color.rgb(15,15,15));
         LinearLayout bar=new LinearLayout(this); bar.setGravity(Gravity.CENTER_VERTICAL); bar.setPadding(12,8,10,8); bar.setBackgroundColor(Color.rgb(20,20,20));
@@ -55,13 +59,13 @@ public class MainActivity extends Activity {
 
         web=new WebView(this); web.setBackgroundColor(Color.BLACK); web.getSettings().setJavaScriptEnabled(true); web.getSettings().setDomStorageEnabled(true); web.getSettings().setMediaPlaybackRequiresUserGesture(true); web.getSettings().setBuiltInZoomControls(false); web.getSettings().setSupportZoom(false); web.getSettings().setUserAgentString("Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140 Mobile Safari/537.36");
         web.setWebViewClient(new WebViewClient(){
-            @Override public boolean shouldInterceptRequest(WebView v, WebResourceRequest r){
+            @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r){
                 String u=r.getUrl().toString();
-                if(isBlocked(u)) return new WebResourceResponse("text/plain","utf-8",null);
+                if(isBlocked(u)) return blockedResponse();
                 return super.shouldInterceptRequest(v,r);
             }
             @Override public WebResourceResponse shouldInterceptRequest(WebView v,String u){
-                if(isBlocked(u)) return new WebResourceResponse("text/plain","utf-8",null);
+                if(isBlocked(u)) return blockedResponse();
                 return super.shouldInterceptRequest(v,u);
             }
             @Override public boolean shouldOverrideUrlLoading(WebView v,String u){ if(u.startsWith("https://www.youtube.com")||u.startsWith("https://m.youtube.com")||u.startsWith("https://youtube.com")) return false; try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(u)));}catch(Exception ignored){} return true; }
