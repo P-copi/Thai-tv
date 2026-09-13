@@ -15,7 +15,7 @@ import android.widget.*;
 import java.util.*;
 
 public class MainActivity extends Activity {
-    WebView web; EditText search; View customView; View rootView; FrameLayout fullFrame; WebChromeClient.CustomViewCallback customCallback;
+    WebView web; EditText search; View customView; View rootView; FullscreenFrameLayout fullFrame; WebChromeClient.CustomViewCallback customCallback;
     boolean pageFullscreen=false, restoring=false; LinearLayout root; LinearLayout.LayoutParams webParams;
     final String HOME="https://m.youtube.com/"; int red=Color.rgb(255,0,51);
     final Set<String> blockedHosts=new HashSet<>(Arrays.asList("doubleclick.net","googlesyndication.com","googleadservices.com","adservice.google.com","adnxs.com","adsrvr.org","taboola.com","outbrain.com","scorecardresearch.com"));
