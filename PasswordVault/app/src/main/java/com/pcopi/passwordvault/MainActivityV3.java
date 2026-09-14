@@ -8,7 +8,7 @@ import android.widget.Button;
 /** Adds the optional save-and-lock action without changing the existing V2 save flow. */
 public class MainActivityV3 extends MainActivityV2 {
     @Override
-    protected void onCreate(Bundle b) {
+    public void onCreate(Bundle b) {
         super.onCreate(b);
     }
 
