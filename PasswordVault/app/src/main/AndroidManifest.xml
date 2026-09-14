@@ -2,7 +2,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <application android:theme="@style/AppTheme" android:label="ส่วนตัว" android:icon="@drawable/ic_private" android:allowBackup="false" android:supportsRtl="true">
-        <activity android:name=".MainActivityV2" android:screenOrientation="portrait" android:exported="true">
+        <activity android:name=".MainActivityV3" android:screenOrientation="portrait" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
