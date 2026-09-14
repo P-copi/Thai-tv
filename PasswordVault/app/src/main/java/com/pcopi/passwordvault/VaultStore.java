@@ -19,7 +19,7 @@ public class VaultStore {
     public String salt(){return p.getString("salt","");}
     public void initialize(String master)throws Exception {
         String s=VaultCrypto.createSalt();
-        p.edit().putString("salt",s).putString("check",VaultCrypto.encrypt("VAULT_OK",master,s)).putString("data",VaultCrypto.encrypt("[]",master,s)).apply();
+        p.edit().putString("salt",s).putString("check",VaultCrypto.encrypt("VAULT_OK",master,s)).putString("data",VaultCrypto.encrypt("[]",master,s)).commit();
     }
     public boolean unlock(String master){try{return "VAULT_OK".equals(VaultCrypto.decrypt(p.getString("check",""),master,salt()));}catch(Exception e){return false;}}
     public List<Entry> entries(String master){
@@ -33,29 +33,29 @@ public class VaultStore {
     public void saveEntries(String master,List<Entry> list)throws Exception{
         JSONArray a=new JSONArray();
         for(Entry e:list){JSONObject o=new JSONObject();o.put("id",e.id);o.put("title",e.title);o.put("user",e.user);o.put("pass",e.pass);o.put("note",e.note);o.put("category",e.category);a.put(o);}
-        p.edit().putString("data",VaultCrypto.encrypt(a.toString(),master,salt())).apply();
+        p.edit().putString("data",VaultCrypto.encrypt(a.toString(),master,salt())).commit();
     }
     public String encryptedBackup(String master)throws Exception{return "MPV2\n"+salt()+"\n"+p.getString("data","");}
-
-    // Restore a backup using the password that was used when that backup was created.
-    // The restored data is then re-encrypted with the currently unlocked master password,
-    // so restore also works after reinstall/reset when the user chose a new master password.
     public void restoreEncryptedBackup(String backup,String backupPassword,String currentMaster)throws Exception{
-        String normalized=backup==null?"":backup.replace("\r\n","\n").replace("\r","\n").trim();
-        String[] x=normalized.split("\\n",3);
-        if(x.length!=3 || !("MPV1".equals(x[0].trim()) || "MPV2".equals(x[0].trim()))) throw new Exception("ไฟล์ Backup ไม่ถูกต้อง");
-        String backupSalt=x[1].trim();
-        String cipher=x[2].trim();
-        if(backupSalt.isEmpty() || cipher.isEmpty()) throw new Exception("ข้อมูล Backup ไม่ครบ");
-        String plain=VaultCrypto.decrypt(cipher,backupPassword,backupSalt);
-        JSONArray array=new JSONArray(plain);
+        String raw=backup==null?"":backup.replace("\uFEFF","").replace("\r\n","\n").replace("\r","\n").trim();
+        if(raw.isEmpty())throw new Exception("ไฟล์ Backup ว่างเปล่า");
+        if(backupPassword==null||backupPassword.isEmpty())throw new Exception("กรุณาใส่ Master Password ของ Backup");
+        String backupSalt="",cipher="";
+        String[] x=raw.split("\\n",3);
+        if(x.length>=3&&(("MPV1".equalsIgnoreCase(x[0].trim()))||("MPV2".equalsIgnoreCase(x[0].trim())))){backupSalt=x[1].trim();cipher=x[2].trim();}
+        else if(x.length==2){backupSalt=x[0].trim();cipher=x[1].trim();}
+        else{backupSalt=salt();cipher=raw;}
+        if(backupSalt.isEmpty()||cipher.isEmpty())throw new Exception("ข้อมูล Backup ไม่ครบ");
+        String plain;
+        try{plain=VaultCrypto.decrypt(cipher,backupPassword,backupSalt);}catch(Exception e){throw new Exception("ถอดรหัส Backup ไม่สำเร็จ — ตรวจสอบ Master Password ของ Backup");}
+        JSONArray array;
+        try{array=new JSONArray(plain.trim());}catch(Exception e){throw new Exception("Backup ไม่ใช่ข้อมูล Vault ที่ถูกต้อง");}
+        String target=(currentMaster==null||currentMaster.isEmpty())?backupPassword:currentMaster;
         String newSalt=VaultCrypto.createSalt();
-        String newData=VaultCrypto.encrypt(array.toString(),currentMaster,newSalt);
-        String newCheck=VaultCrypto.encrypt("VAULT_OK",currentMaster,newSalt);
-        p.edit().putString("salt",newSalt).putString("check",newCheck).putString("data",newData).apply();
+        String newData=VaultCrypto.encrypt(array.toString(),target,newSalt);
+        String newCheck=VaultCrypto.encrypt("VAULT_OK",target,newSalt);
+        if(!p.edit().putString("salt",newSalt).putString("check",newCheck).putString("data",newData).commit())throw new Exception("เขียนข้อมูล Restore ไม่สำเร็จ");
     }
-
-    // Backward-compatible overload for callers that use the same master password for backup and vault.
     public void restoreEncryptedBackup(String backup,String master)throws Exception{restoreEncryptedBackup(backup,master,master);}
     public void add(String master,Entry e)throws Exception{List<Entry> l=entries(master);l.add(e);saveEntries(master,l);}
     public void update(String master,Entry e)throws Exception{List<Entry> l=entries(master);for(int i=0;i<l.size();i++)if(l.get(i).id.equals(e.id)){l.set(i,e);break;}saveEntries(master,l);}
