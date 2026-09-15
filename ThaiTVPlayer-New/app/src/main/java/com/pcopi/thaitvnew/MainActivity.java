@@ -20,6 +20,7 @@ import androidx.media3.common.MediaItem;
 import androidx.media3.common.MimeTypes;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.datasource.DefaultHttpDataSource;
+import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.drm.DefaultDrmSessionManager;
 import androidx.media3.exoplayer.drm.DrmSessionManager;
@@ -76,7 +77,9 @@ public class MainActivity extends AppCompatActivity {
         status=tv("กำลังเตรียมรายการช่อง…",14);status.setTextColor(0xffffb74d);root.addView(status,new LinearLayout.LayoutParams(-1,dp(40)));recycler=new RecyclerView(this);recycler.setLayoutManager(new LinearLayoutManager(this));adapter=new ChannelAdapter();recycler.setAdapter(adapter);root.addView(recycler,new LinearLayout.LayoutParams(-1,0,1));normalPanel=root;buildDrawer();setContentView(drawer);
         DefaultHttpDataSource.Factory http=new DefaultHttpDataSource.Factory().setUserAgent("Mozilla/5.0 (Android) ThaiTVPlayer/3.1").setConnectTimeoutMs(15000).setReadTimeoutMs(25000).setAllowCrossProtocolRedirects(true);
         DefaultMediaSourceFactory mf=new DefaultMediaSourceFactory(http).setDrmSessionManagerProvider(clearKeyProvider);
-        player=new ExoPlayer.Builder(this).setMediaSourceFactory(mf).build();playerView.setPlayer(player);player.addListener(new androidx.media3.common.Player.Listener(){@Override public void onPlayerError(PlaybackException e){error("เปิดช่องไม่ได้: "+(e.getErrorCodeName()==null?"ไม่ทราบสาเหตุ":e.getErrorCodeName()));}});
+        DefaultRenderersFactory renderers=new DefaultRenderersFactory(this);
+        if(BuildConfig.TV_BOX_BUILD) renderers.setEnableDecoderFallback(true);
+        player=new ExoPlayer.Builder(this).setRenderersFactory(renderers).setMediaSourceFactory(mf).build();playerView.setPlayer(player);player.addListener(new androidx.media3.common.Player.Listener(){@Override public void onPlayerError(PlaybackException e){error("เปิดช่องไม่ได้: "+(e.getErrorCodeName()==null?"ไม่ทราบสาเหตุ":e.getErrorCodeName()));}});
     }
 
     private final DrmSessionManagerProvider clearKeyProvider=mediaItem->{
