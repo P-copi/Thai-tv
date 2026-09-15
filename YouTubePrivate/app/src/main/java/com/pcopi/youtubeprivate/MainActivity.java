@@ -18,7 +18,16 @@ public class MainActivity extends Activity {
     WebView web; View customView; View rootView; FullscreenFrameLayout fullFrame; WebChromeClient.CustomViewCallback customCallback;
     boolean pageFullscreen=false, restoring=false; LinearLayout root; LinearLayout.LayoutParams webParams;
     final String HOME="https://m.youtube.com/"; int red=Color.rgb(255,0,51);
-    final Set<String> blockedHosts=new HashSet<>(Arrays.asList("doubleclick.net","googlesyndication.com","googleadservices.com","adservice.google.com","adnxs.com","adsrvr.org","taboola.com","outbrain.com","scorecardresearch.com"));
+    final Set<String> blockedHosts=new HashSet<>(Arrays.asList(
+        "doubleclick.net","googlesyndication.com","googleadservices.com","adservice.google.com",
+        "adnxs.com","adsrvr.org","taboola.com","outbrain.com","scorecardresearch.com",
+        "criteo.com","criteo.net","pubmatic.com","rubiconproject.com","openx.net",
+        "advertising.com","3lift.com","yieldmo.com","inmobi.com","appier.com",
+        "smartadserver.com","adsafeprotected.com","moatads.com","quantserve.com",
+        "casalemedia.com","demdex.net","everesttech.net","lijit.com","sharethrough.com",
+        "bidswitch.net","media.net","amazon-adsystem.com","contextweb.com","33across.com",
+        "smaato.net","sonobi.com","spotxchange.com","teads.tv","zedo.com"
+    ));
     @Override public void onCreate(Bundle b){super.onCreate(b);buildUi();load(HOME);}
     TextView label(String s,int z){TextView t=new TextView(this);t.setText(s);t.setTextColor(Color.WHITE);t.setTextSize(z);t.setGravity(Gravity.CENTER);t.setPadding(8,4,8,4);return t;}
     GradientDrawable bg(int c,float r){GradientDrawable g=new GradientDrawable();g.setColor(c);g.setCornerRadius(r);return g;}
