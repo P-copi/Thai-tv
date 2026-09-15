@@ -1,7 +1,17 @@
 plugins { id 'com.android.application' }
 
+def tvBoxBuild = project.hasProperty('tvbox')
+
 android { namespace 'com.pcopi.thaitvnew'; compileSdk 35
-    defaultConfig { applicationId 'com.pcopi.thaitvnew'; minSdk 23; targetSdk 35; versionCode 3; versionName '2.1' }
+    defaultConfig {
+        applicationId tvBoxBuild ? 'com.pcopi.thaitvnew.tv' : 'com.pcopi.thaitvnew'
+        minSdk 23
+        targetSdk tvBoxBuild ? 28 : 35
+        versionCode tvBoxBuild ? 4 : 3
+        versionName tvBoxBuild ? '2.1-TV' : '2.1'
+        buildConfigField 'boolean', 'TV_BOX_BUILD', tvBoxBuild ? 'true' : 'false'
+    }
+    buildFeatures { buildConfig true }
 }
 
 dependencies {
