@@ -16,8 +16,8 @@ public class MainActivityV4 extends MainActivityV3 {
     private Intent withTimestampedBackupName(Intent source) {
         Intent copy = new Intent(source);
         String action = copy.getAction();
-        String name = "MyPasswordVault_Backup_" +
-                new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(new Date()) + ".mpv";
+        String name = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(new Date()) +
+                "_MyPasswordVault_Backup.mpv";
 
         if (Intent.ACTION_CREATE_DOCUMENT.equals(action)) {
             copy.putExtra(Intent.EXTRA_TITLE, name);
