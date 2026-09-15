@@ -1,0 +1,61 @@
+name: Build Thai TV Player Android TV Box
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'ThaiTVPlayer-New/**'
+      - '.github/workflows/build-thai-tv-player-tvbox.yml'
+
+jobs:
+  build-tvbox:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Setup Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Apply colorful center menu icons
+        working-directory: ThaiTVPlayer-New/app
+        run: python3 apply_ui_icons.py
+
+      - name: Apply pinch-to-zoom up to 400%
+        working-directory: ThaiTVPlayer-New/app
+        run: python3 apply_zoom.py
+
+      - name: Apply Video/Audio List and Album views
+        working-directory: ThaiTVPlayer-New/app
+        run: python3 apply_media_view.py
+
+      - name: Keep bottom navigation above system buttons
+        working-directory: ThaiTVPlayer-New/app
+        run: python3 apply_nav_inset.py
+
+      - name: Build Android TV Box APK
+        working-directory: ThaiTVPlayer-New
+        run: gradle --no-daemon clean :app:assembleDebug -Ptvbox=true
+
+      - name: Verify APK exists
+        run: test -s ThaiTVPlayer-New/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Verify TV Box application ID
+        working-directory: ThaiTVPlayer-New
+        run: grep -q 'com.pcopi.thaitvnew.tv' app/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml || true
+
+      - name: Upload Android TV Box APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThaiTVPlayer-New-AndroidTVBox-Android7plus-debug
+          path: ThaiTVPlayer-New/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
