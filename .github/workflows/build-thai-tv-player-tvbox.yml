@@ -42,7 +42,11 @@ jobs:
         working-directory: ThaiTVPlayer-New/app
         run: python3 apply_nav_inset.py
 
-      - name: Apply legacy Android TV rendering/input compatibility fix
+      - name: Apply Android TV manifest compatibility
+        working-directory: ThaiTVPlayer-New/app
+        run: python3 apply_tvbox_manifest.py
+
+      - name: Apply Android TV Box UI/input compatibility fix
         working-directory: ThaiTVPlayer-New/app
         run: python3 apply_tvbox_render_fix.py
 
@@ -55,7 +59,13 @@ jobs:
 
       - name: Verify TV Box application ID
         working-directory: ThaiTVPlayer-New
-        run: grep -q 'com.pcopi.thaitvnew.tv' app/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml || true
+        run: grep -q 'com.pcopi.thaitvnew.tv' app/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml
+
+      - name: Verify TV Box launcher and touchscreen settings
+        working-directory: ThaiTVPlayer-New
+        run: |
+          grep -q 'android.intent.category.LEANBACK_LAUNCHER' app/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml
+          grep -q 'android.hardware.touchscreen' app/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml
 
       - name: Upload Android TV Box APK
         uses: actions/upload-artifact@v4
