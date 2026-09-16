@@ -42,6 +42,10 @@ jobs:
         working-directory: ThaiTVPlayer-New/app
         run: python3 apply_nav_inset.py
 
+      - name: Apply legacy Android TV rendering/input compatibility fix
+        working-directory: ThaiTVPlayer-New/app
+        run: python3 apply_tvbox_render_fix.py
+
       - name: Build Android TV Box APK
         working-directory: ThaiTVPlayer-New
         run: gradle --no-daemon clean :app:assembleDebug -Ptvbox=true
