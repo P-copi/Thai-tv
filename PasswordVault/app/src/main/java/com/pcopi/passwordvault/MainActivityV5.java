@@ -11,7 +11,7 @@ import android.view.View;
 import android.widget.*;
 import java.util.*;
 
-/** V5.2: smoother drop-only drag ordering, larger notes, explicit back/lock actions, safe editing. */
+/** V5.3: drop-only drag with edge auto-scroll, larger notes, explicit back/lock actions, safe editing. */
 public class MainActivityV5 extends MainActivityV4 {
     private boolean editDirty = false;
 
@@ -60,6 +60,24 @@ public class MainActivityV5 extends MainActivityV4 {
                             return true;
                         case DragEvent.ACTION_DRAG_ENTERED:
                             if(dragged!=null && dragged!=target) target.setAlpha(.82f);
+                            return true;
+                        case DragEvent.ACTION_DRAG_LOCATION:
+                            View parentView=(View)list.getParent();
+                            if(parentView instanceof ScrollView){
+                                ScrollView sc=(ScrollView)parentView;
+                                int[] scLoc=new int[2];
+                                int[] targetLoc=new int[2];
+                                sc.getLocationOnScreen(scLoc);
+                                target.getLocationOnScreen(targetLoc);
+                                float rawY=targetLoc[1]+event.getY();
+                                int edge=d(72);
+                                int step=d(22);
+                                if(rawY < scLoc[1]+edge){
+                                    sc.scrollBy(0,-step);
+                                }else if(rawY > scLoc[1]+sc.getHeight()-edge){
+                                    sc.scrollBy(0,step);
+                                }
+                            }
                             return true;
                         case DragEvent.ACTION_DRAG_EXITED:
                             if(target!=dragged) target.setAlpha(1f);
