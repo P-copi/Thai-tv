@@ -1,7 +1,35 @@
 plugins { id 'com.android.application' }
 
-android { namespace 'com.pcopi.passwordvault'; compileSdk 35
-    defaultConfig { applicationId 'com.pcopi.passwordvault'; minSdk 26; targetSdk 35; versionCode 4; versionName '5.0' }
+android {
+    namespace 'com.pcopi.passwordvault'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.pcopi.passwordvault'
+        minSdk 26
+        targetSdk 35
+        versionCode 4
+        versionName '5.0'
+    }
+
+    signingConfigs {
+        release {
+            def ks = System.getenv('PV_KEYSTORE_FILE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('PV_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('PV_KEY_ALIAS')
+                keyPassword System.getenv('PV_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
 }
 
 dependencies {
