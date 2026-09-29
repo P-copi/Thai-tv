@@ -1,7 +1,7 @@
 plugins { id 'com.android.application' }
 
 android { namespace 'com.pcopi.passwordvault'; compileSdk 35
-    defaultConfig { applicationId 'com.pcopi.passwordvault'; minSdk 26; targetSdk 35; versionCode 4; versionName '4.0' }
+    defaultConfig { applicationId 'com.pcopi.passwordvault'; minSdk 26; targetSdk 35; versionCode 4; versionName '5.0' }
 }
 
 dependencies {
