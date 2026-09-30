@@ -9,7 +9,9 @@ import java.util.Locale;
 public class MainActivityV4 extends MainActivityV3 {
     @Override
     public void startActivityForResult(Intent intent, int requestCode) {
-        Intent i = withTimestampedBackupName(intent);
+        // Only the backup flow (requestCode 10) should receive a timestamped .mpv name.
+        // Secure attachment exports must keep their real original filename.
+        Intent i = requestCode == 10 ? withTimestampedBackupName(intent) : new Intent(intent);
         super.startActivityForResult(i, requestCode);
     }
 
