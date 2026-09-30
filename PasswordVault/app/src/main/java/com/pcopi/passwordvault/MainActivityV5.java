@@ -11,7 +11,7 @@ import android.view.View;
 import android.widget.*;
 import java.util.*;
 
-/** V5.3: drop-only drag with edge auto-scroll, larger notes, explicit back/lock actions, safe editing. */
+/** V5.4: reliable whole-list drop target with edge auto-scroll, larger notes, explicit back/lock actions, safe editing. */
 public class MainActivityV5 extends MainActivityV4 {
     private boolean editDirty = false;
 
@@ -53,62 +53,62 @@ public class MainActivityV5 extends MainActivityV4 {
                 };
                 c.setOnLongClickListener(startDrag);
                 handle.setOnLongClickListener(startDrag);
-                c.setOnDragListener((target,event)->{
-                    View dragged=(View)event.getLocalState();
-                    switch(event.getAction()){
-                        case DragEvent.ACTION_DRAG_STARTED:
-                            return true;
-                        case DragEvent.ACTION_DRAG_ENTERED:
-                            if(dragged!=null && dragged!=target) target.setAlpha(.82f);
-                            return true;
-                        case DragEvent.ACTION_DRAG_LOCATION:
-                            View parentView=(View)list.getParent();
-                            if(parentView instanceof ScrollView){
-                                ScrollView sc=(ScrollView)parentView;
-                                int[] scLoc=new int[2];
-                                int[] targetLoc=new int[2];
-                                sc.getLocationOnScreen(scLoc);
-                                target.getLocationOnScreen(targetLoc);
-                                float rawY=targetLoc[1]+event.getY();
-                                int edge=d(72);
-                                int step=d(22);
-                                if(rawY < scLoc[1]+edge){
-                                    sc.scrollBy(0,-step);
-                                }else if(rawY > scLoc[1]+sc.getHeight()-edge){
-                                    sc.scrollBy(0,step);
-                                }
-                            }
-                            return true;
-                        case DragEvent.ACTION_DRAG_EXITED:
-                            if(target!=dragged) target.setAlpha(1f);
-                            return true;
-                        case DragEvent.ACTION_DROP:
-                            if(dragged!=null && dragged!=target && dragged.getParent()==list){
-                                int from=list.indexOfChild(dragged);
-                                int to=list.indexOfChild(target);
-                                if(from>=0 && to>=0 && from!=to){
-                                    list.removeView(dragged);
-                                    if(from<to) to--;
-                                    list.addView(dragged,to);
-                                    saveVisibleOrder();
-                                    renumberRows();
-                                }
-                            }
-                            target.setAlpha(1f);
-                            return true;
-                        case DragEvent.ACTION_DRAG_ENDED:
-                            if(dragged!=null) dragged.setAlpha(1f);
-                            target.setAlpha(1f);
-                            return true;
-                        default:
-                            return true;
-                    }
-                });
             }
         }
+
         if(no==0){
             TextView z=tv("ยังไม่มีรายการ\nกด “เพิ่มรายการ” เพื่อเริ่มต้น",16,MUTED);
             z.setGravity(17); list.addView(z,new LinearLayout.LayoutParams(-1,d(160)));
+        }
+
+        if(query.isEmpty() && no>0){
+            list.setOnDragListener((v,event)->{
+                View dragged=(View)event.getLocalState();
+                switch(event.getAction()){
+                    case DragEvent.ACTION_DRAG_STARTED:
+                        return dragged!=null;
+                    case DragEvent.ACTION_DRAG_LOCATION:
+                        View parentView=(View)list.getParent();
+                        if(parentView instanceof ScrollView){
+                            ScrollView sc=(ScrollView)parentView;
+                            float yOnScreen=event.getY()-sc.getScrollY();
+                            int edge=d(90);
+                            int step=d(28);
+                            if(yOnScreen < edge){
+                                sc.scrollBy(0,-step);
+                            }else if(yOnScreen > sc.getHeight()-edge){
+                                sc.scrollBy(0,step);
+                            }
+                        }
+                        return true;
+                    case DragEvent.ACTION_DROP:
+                        if(dragged==null || dragged.getParent()!=list) return true;
+                        float dropY=event.getY();
+                        int insert=0;
+                        for(int i=0;i<list.getChildCount();i++){
+                            View child=list.getChildAt(i);
+                            if(child==dragged) continue;
+                            float center=child.getTop()+child.getHeight()/2f;
+                            if(dropY<center) break;
+                            insert++;
+                        }
+                        list.removeView(dragged);
+                        if(insert<0) insert=0;
+                        if(insert>list.getChildCount()) insert=list.getChildCount();
+                        list.addView(dragged,insert);
+                        saveVisibleOrder();
+                        renumberRows();
+                        dragged.setAlpha(1f);
+                        return true;
+                    case DragEvent.ACTION_DRAG_ENDED:
+                        if(dragged!=null) dragged.setAlpha(1f);
+                        return true;
+                    default:
+                        return true;
+                }
+            });
+        }else{
+            list.setOnDragListener(null);
         }
     }
 
