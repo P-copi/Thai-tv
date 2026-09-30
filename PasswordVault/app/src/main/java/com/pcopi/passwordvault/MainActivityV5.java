@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** V6.1: secure attachments with reliable export, MPV3 backup, stable notes and drag-drop. */
+/** V6.2: secure attachments with visible action buttons and reliable export. */
 public class MainActivityV5 extends MainActivityV4 {
     private boolean editDirty = false;
     private AttachmentStore attachmentStore;
@@ -370,14 +370,37 @@ public class MainActivityV5 extends MainActivityV4 {
     }
 
     private void attachmentActions(VaultStore.Entry e,AttachmentStore.Meta m){
-        String[] actions={"ส่งออกไฟล์","ตรวจสอบ SHA-256","ลบไฟล์"};
-        new AlertDialog.Builder(this).setTitle(m.name)
-                .setMessage(humanSize(m.size))
-                .setItems(actions,(d,which)->{
-                    if(which==0) confirmAttachmentExport(m);
-                    else if(which==1) verifyAttachment(m);
-                    else confirmDeleteAttachment(e,m);
-                }).setNegativeButton("ปิด",null).show();
+        LinearLayout box=new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(d(16),d(6),d(16),d(6));
+
+        TextView info=tv("ขนาด "+humanSize(m.size)+"\nSHA-256 พร้อมตรวจสอบ",13,MUTED);
+        info.setPadding(d(4),0,d(4),d(10));
+        box.addView(info,new LinearLayout.LayoutParams(-1,d(58)));
+
+        Button export=bt("ส่งออกไฟล์");
+        box.addView(export,new LinearLayout.LayoutParams(-1,d(52)));
+
+        Button verify=bt("ตรวจสอบ SHA-256");
+        verify.setTextColor(BLUE); verify.setBackground(line());
+        LinearLayout.LayoutParams vp=new LinearLayout.LayoutParams(-1,d(52)); vp.setMargins(0,d(8),0,0);
+        box.addView(verify,vp);
+
+        Button del=bt("ลบไฟล์");
+        del.setTextColor(Color.rgb(190,45,60)); del.setBackground(line());
+        LinearLayout.LayoutParams dp=new LinearLayout.LayoutParams(-1,d(52)); dp.setMargins(0,d(8),0,0);
+        box.addView(del,dp);
+
+        AlertDialog dlg=new AlertDialog.Builder(this)
+                .setTitle(m.name)
+                .setView(box)
+                .setNegativeButton("ปิด",null)
+                .create();
+
+        export.setOnClickListener(v->{dlg.dismiss();confirmAttachmentExport(m);});
+        verify.setOnClickListener(v->{dlg.dismiss();verifyAttachment(m);});
+        del.setOnClickListener(v->{dlg.dismiss();confirmDeleteAttachment(e,m);});
+        dlg.show();
     }
 
     private void verifyAttachment(AttachmentStore.Meta m){
