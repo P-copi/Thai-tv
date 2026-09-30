@@ -99,6 +99,11 @@ public class AttachmentStore {
     public int count(String supplied,String entryId){
         try{return list(supplied,entryId).size();}catch(Exception e){return 0;}
     }
+    public Meta get(String supplied,String id)throws Exception{
+        for(Meta m:all(supplied)) if(id.equals(m.id)) return m;
+        return null;
+    }
+
 
     public Meta addFromUri(String supplied,String entryId,Uri uri)throws Exception{
         String name=fileName(uri);
