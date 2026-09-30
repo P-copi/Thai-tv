@@ -17,6 +17,7 @@ public class VaultStore {
     private final SharedPreferences p;
     public VaultStore(Context c){p=c.getSharedPreferences("vault",Context.MODE_PRIVATE);}
     private String effective(String master){return (master==null||master.isEmpty())?sessionMaster:master;}
+    public String currentMaster(String master){return effective(master);}
     public boolean initialized(){return p.contains("salt") && p.contains("check");}
     public String salt(){return p.getString("salt","");}
     public void initialize(String master)throws Exception {
