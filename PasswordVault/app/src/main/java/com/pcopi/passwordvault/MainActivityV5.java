@@ -2,6 +2,8 @@ package com.pcopi.passwordvault;
 
 import android.app.AlertDialog;
 import android.content.ClipData;
+import android.content.Intent;
+import android.net.Uri;
 import android.graphics.Color;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -10,10 +12,17 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
 import java.util.*;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
-/** V5.6: stable long-note editing with safe expanded editor and reliable drag-drop. */
+/** V6.0: secure encrypted file attachments, MPV3 backup, stable notes and drag-drop. */
 public class MainActivityV5 extends MainActivityV4 {
     private boolean editDirty = false;
+    private AttachmentStore attachmentStore;
+    private String pendingAttachmentEntryId="";
+    private AttachmentStore.Meta pendingExportAttachment;
 
     @Override
     void render(String q) {
@@ -211,6 +220,8 @@ public class MainActivityV5 extends MainActivityV4 {
         note.setBackground(line()); note.setTextIsSelectable(true); note.setMinHeight(d(150));
         b.addView(note,new LinearLayout.LayoutParams(-1,-2));
 
+        addAttachmentSection(b,e);
+
         field(b,"หมวดหมู่",e.category,false,false);
 
         Button ed=bt("✎  แก้ไข"); LinearLayout.LayoutParams ep=new LinearLayout.LayoutParams(-1,d(52)); ep.setMargins(0,d(12),0,0); b.addView(ed,ep);
@@ -220,7 +231,7 @@ public class MainActivityV5 extends MainActivityV4 {
         LinearLayout.LayoutParams dp=new LinearLayout.LayoutParams(-1,d(52)); dp.setMargins(0,d(10),0,0); b.addView(del,dp);
         del.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("ลบรายการ?").setMessage(e.title)
                 .setNegativeButton("ยกเลิก",null)
-                .setPositiveButton("ลบ",(x,w)->{try{store.delete(master,e.id);home();}catch(Exception z){toast("ลบไม่สำเร็จ");}}).show());
+                .setPositiveButton("ลบ",(x,w)->{try{store.delete(master,e.id);try{attachments().deleteForEntry(effectiveMaster(),e.id);}catch(Exception ignored){}home();}catch(Exception z){toast("ลบไม่สำเร็จ");}}).show());
 
         addBackLockActions(()->home());
     }
@@ -256,7 +267,7 @@ public class MainActivityV5 extends MainActivityV4 {
         LinearLayout b=new LinearLayout(this); b.setOrientation(LinearLayout.VERTICAL); b.setPadding(d(14),d(8),d(14),d(20));
         sv.addView(b); root.addView(sv,new LinearLayout.LayoutParams(-1,0,1));
 
-        TextView info=tv("สำรองข้อมูลแบบเข้ารหัส\nเลือก Google Drive, NAS หรือโฟลเดอร์ปลายทางได้จากตัวเลือกไฟล์",14,TEXT);
+        TextView info=tv("สำรองข้อมูลแบบเข้ารหัส\nรวม Password, บันทึก, ลำดับรายการ และไฟล์สำคัญทั้งหมดไว้ใน .mpv เดียว",14,TEXT);
         info.setPadding(d(14),d(12),d(14),d(12)); info.setBackground(bg(Color.rgb(231,241,255),15));
         b.addView(info,new LinearLayout.LayoutParams(-1,d(82)));
 
@@ -289,10 +300,257 @@ public class MainActivityV5 extends MainActivityV4 {
         Button l=bt("ล็อกแอปทันที"); LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,d(52)); lp.setMargins(0,d(10),0,0); b.addView(l,lp);
         l.setOnClickListener(v->lockNow());
 
-        TextView note=tv("V5.1\nข้อมูล Vault เข้ารหัสในเครื่อง\nBackup/Restore ใช้ตัวเลือกไฟล์ของ Android จึงเลือก Google Drive หรือ NAS ได้ตามที่เครื่องรองรับ",13,MUTED);
+        TextView note=tv("V6.0 Secure Attachments\nข้อมูล Vault และไฟล์สำคัญเข้ารหัสในเครื่อง\nBackup .mpv รวมข้อมูลและไฟล์สำคัญ โดยยัง Restore Backup รุ่นเก่าได้",13,MUTED);
         note.setPadding(0,d(18),0,0); b.addView(note,new LinearLayout.LayoutParams(-1,d(120)));
 
         addBackLockActions(()->home());
+    }
+
+    private AttachmentStore attachments(){
+        if(attachmentStore==null) attachmentStore=new AttachmentStore(this,store);
+        return attachmentStore;
+    }
+
+    private String effectiveMaster(){
+        return store.currentMaster(master);
+    }
+
+    private VaultStore.Entry findEntry(String id){
+        for(VaultStore.Entry e:store.entries(effectiveMaster())) if(e.id.equals(id)) return e;
+        return null;
+    }
+
+    private String humanSize(long n){
+        if(n<1024) return n+" B";
+        if(n<1024*1024) return String.format(Locale.US,"%.1f KB",n/1024.0);
+        return String.format(Locale.US,"%.1f MB",n/(1024.0*1024.0));
+    }
+
+    private void addAttachmentSection(LinearLayout b,VaultStore.Entry e){
+        TextView title=tv("ไฟล์สำคัญ",14,TEXT); title.setTypeface(null,1);
+        LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,d(34)); tp.setMargins(0,d(12),0,0); b.addView(title,tp);
+
+        try{
+            List<AttachmentStore.Meta> files=attachments().list(effectiveMaster(),e.id);
+            if(files.isEmpty()){
+                TextView empty=tv("ยังไม่มีไฟล์แนบ • ไฟล์จะถูกเข้ารหัสและเก็บในพื้นที่ส่วนตัวของแอป",12,MUTED);
+                empty.setPadding(d(10),d(4),d(10),d(6)); b.addView(empty,new LinearLayout.LayoutParams(-1,d(48)));
+            }else{
+                for(AttachmentStore.Meta m:files){
+                    LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL);
+                    row.setPadding(d(12),d(5),d(8),d(5)); row.setBackground(line());
+                    TextView icon=tv("🔐",17,MUTED); row.addView(icon,new LinearLayout.LayoutParams(d(38),d(52)));
+                    LinearLayout txt=new LinearLayout(this); txt.setOrientation(LinearLayout.VERTICAL);
+                    TextView name=tv(m.name,14,TEXT); name.setSingleLine(true); name.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+                    txt.addView(name,new LinearLayout.LayoutParams(-1,d(28)));
+                    txt.addView(tv(humanSize(m.size)+"  •  SHA-256 ตรวจสอบได้",11,MUTED),new LinearLayout.LayoutParams(-1,d(22)));
+                    row.addView(txt,new LinearLayout.LayoutParams(0,d(52),1));
+                    row.addView(tv("›",24,MUTED),new LinearLayout.LayoutParams(d(30),d(52)));
+                    LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,d(58)); rp.setMargins(0,d(5),0,0); b.addView(row,rp);
+                    row.setOnClickListener(v->attachmentActions(e,m));
+                }
+            }
+        }catch(Exception ex){
+            b.addView(tv("อ่านไฟล์สำคัญไม่สำเร็จ",12,Color.rgb(190,45,60)),new LinearLayout.LayoutParams(-1,d(38)));
+        }
+
+        Button add=bt("＋  เพิ่มไฟล์สำคัญ");
+        add.setTextColor(BLUE); add.setBackground(line());
+        LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(-1,d(50)); ap.setMargins(0,d(8),0,d(4)); b.addView(add,ap);
+        add.setOnClickListener(v->chooseAttachment(e.id));
+    }
+
+    private void chooseAttachment(String entryId){
+        pendingAttachmentEntryId=entryId;
+        Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.setType("*/*"); i.addCategory(Intent.CATEGORY_OPENABLE);
+        startActivityForResult(i,20);
+    }
+
+    private void attachmentActions(VaultStore.Entry e,AttachmentStore.Meta m){
+        String[] actions={"ส่งออกไฟล์","ตรวจสอบ SHA-256","ลบไฟล์"};
+        new AlertDialog.Builder(this).setTitle(m.name)
+                .setMessage(humanSize(m.size))
+                .setItems(actions,(d,which)->{
+                    if(which==0) confirmAttachmentExport(m);
+                    else if(which==1) verifyAttachment(m);
+                    else confirmDeleteAttachment(e,m);
+                }).setNegativeButton("ปิด",null).show();
+    }
+
+    private void verifyAttachment(AttachmentStore.Meta m){
+        try{
+            attachments().read(effectiveMaster(),m);
+            new AlertDialog.Builder(this).setTitle("SHA-256 ถูกต้อง")
+                    .setMessage(m.sha256)
+                    .setNegativeButton("ปิด",null)
+                    .setPositiveButton("คัดลอก",(d,w)->{
+                        ((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE))
+                                .setPrimaryClip(ClipData.newPlainText("SHA-256",m.sha256));
+                        toast("คัดลอก SHA-256 แล้ว");
+                    }).show();
+        }catch(Exception ex){toast("ตรวจสอบไฟล์ไม่สำเร็จ: "+ex.getMessage());}
+    }
+
+    private void confirmDeleteAttachment(VaultStore.Entry e,AttachmentStore.Meta m){
+        new AlertDialog.Builder(this).setTitle("ลบไฟล์สำคัญ?")
+                .setMessage(m.name+"\n\nการลบนี้ลบเฉพาะสำเนาที่เข้ารหัสในแอป")
+                .setNegativeButton("ยกเลิก",null)
+                .setPositiveButton("ลบ",(d,w)->{
+                    try{attachments().delete(effectiveMaster(),m.id);toast("ลบไฟล์แล้ว");details(e);}
+                    catch(Exception ex){toast("ลบไฟล์ไม่สำเร็จ: "+ex.getMessage());}
+                }).show();
+    }
+
+    private void confirmAttachmentExport(AttachmentStore.Meta m){
+        EditText p=in("Master Password"); p.setInputType(129);
+        LinearLayout box=new LinearLayout(this); box.setPadding(d(6),d(4),d(6),0);
+        box.addView(p,new LinearLayout.LayoutParams(-1,d(54)));
+        AlertDialog dlg=new AlertDialog.Builder(this).setTitle("ยืนยันก่อนส่งออกไฟล์")
+                .setMessage("เพื่อป้องกันไฟล์สำคัญ กรุณายืนยัน Master Password")
+                .setView(box).setNegativeButton("ยกเลิก",null).setPositiveButton("ยืนยัน",null).create();
+        dlg.setOnShowListener(x->dlg.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
+            String pw=p.getText().toString();
+            if(!store.unlock(pw)){p.setError("Master Password ไม่ถูกต้อง");return;}
+            master=pw; pendingExportAttachment=m; dlg.dismiss();
+            Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            i.setType(m.mime==null||m.mime.isEmpty()?"application/octet-stream":m.mime);
+            i.addCategory(Intent.CATEGORY_OPENABLE); i.putExtra(Intent.EXTRA_TITLE,m.name);
+            startActivityForResult(i,21);
+        }));
+        dlg.show();
+    }
+
+    @Override
+    void exportFile(){
+        Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        i.setType("application/octet-stream"); i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.putExtra(Intent.EXTRA_TITLE,"MyPasswordVault_Backup.mpv");
+        startActivityForResult(i,10);
+    }
+
+    @Override
+    void importFile(){
+        Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.setType("*/*"); i.addCategory(Intent.CATEGORY_OPENABLE);
+        startActivityForResult(i,11);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        if(requestCode!=10&&requestCode!=11&&requestCode!=20&&requestCode!=21){
+            super.onActivityResult(requestCode,resultCode,data);return;
+        }
+        if(resultCode!=RESULT_OK||data==null) return;
+        try{
+            if(requestCode==20){
+                if(pendingAttachmentEntryId.isEmpty()) throw new Exception("ไม่พบรายการปลายทาง");
+                AttachmentStore.Meta m=attachments().addFromUri(effectiveMaster(),pendingAttachmentEntryId,data.getData());
+                toast("เพิ่มไฟล์สำคัญแล้ว: "+m.name);
+                VaultStore.Entry e=findEntry(pendingAttachmentEntryId);
+                pendingAttachmentEntryId="";
+                if(e!=null) details(e); else home();
+            }else if(requestCode==21){
+                if(pendingExportAttachment==null) throw new Exception("ไม่พบไฟล์ที่จะส่งออก");
+                attachments().export(effectiveMaster(),pendingExportAttachment,data.getData());
+                toast("ส่งออกไฟล์สำเร็จ");
+                pendingExportAttachment=null;
+            }else if(requestCode==10){
+                String backup=buildBackupV3();
+                OutputStream raw=getContentResolver().openOutputStream(data.getData());
+                if(raw==null) throw new IOException("เปิดไฟล์ปลายทางไม่ได้");
+                try(OutputStream out=raw){out.write(backup.getBytes(StandardCharsets.UTF_8));out.flush();}
+                toast("Backup สำเร็จ — รวมไฟล์สำคัญแล้ว");
+            }else{
+                askBackupPasswordV6(readText(data.getData()));
+            }
+        }catch(Exception ex){toast("ดำเนินการไม่สำเร็จ: "+ex.getMessage());}
+    }
+
+    private String buildBackupV3()throws Exception{
+        String m=effectiveMaster();
+        if(m==null||m.isEmpty()||!store.unlock(m)) throw new Exception("กรุณาปลดล็อกแอปใหม่");
+        JSONObject payload=new JSONObject();
+        payload.put("format",3); payload.put("createdAt",System.currentTimeMillis());
+        JSONArray vault=new JSONArray();
+        for(VaultStore.Entry e:store.entries(m)){
+            JSONObject o=new JSONObject();
+            o.put("id",e.id);o.put("title",e.title);o.put("user",e.user);o.put("pass",e.pass);
+            o.put("note",e.note);o.put("category",e.category);vault.put(o);
+        }
+        payload.put("vault",vault);
+        payload.put("attachments",attachments().backupArray(m));
+        String salt=VaultCrypto.createSalt();
+        return "MPV3\n"+salt+"\n"+VaultCrypto.encrypt(payload.toString(),m,salt);
+    }
+
+    private void askBackupPasswordV6(String backup){
+        EditText p=in("Master Password ที่ใช้สร้าง Backup"); p.setInputType(129);
+        LinearLayout box=new LinearLayout(this); box.setPadding(d(6),d(4),d(6),0);
+        box.addView(p,new LinearLayout.LayoutParams(-1,d(54)));
+        AlertDialog dlg=new AlertDialog.Builder(this).setTitle("รหัสผ่านของ Backup")
+                .setMessage("รองรับ Backup รุ่นเดิมและ MPV3 ที่รวมไฟล์สำคัญ")
+                .setView(box).setNegativeButton("ยกเลิก",null).setPositiveButton("ตรวจสอบและกู้คืน",null).create();
+        dlg.setOnShowListener(x->dlg.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
+            String bp=p.getText().toString();
+            if(bp.isEmpty()){p.setError("กรุณากรอกรหัสผ่าน Backup");return;}
+            dlg.dismiss(); confirmRestoreV6(backup,bp);
+        }));
+        dlg.show();
+    }
+
+    private void confirmRestoreV6(String backup,String backupPassword){
+        new AlertDialog.Builder(this).setTitle("ยืนยันการกู้คืน")
+                .setMessage("ข้อมูลในเครื่อง รวมถึงไฟล์สำคัญ จะถูกแทนที่ด้วย Backup นี้\n\nBackup รุ่นเก่าที่ไม่มีไฟล์สำคัญยังใช้งานได้")
+                .setNegativeButton("ยกเลิก",null)
+                .setPositiveButton("กู้คืน",(d,w)->{
+                    try{
+                        if(isV3Backup(backup)) restoreV3(backup,backupPassword);
+                        else{
+                            store.restoreEncryptedBackup(backup,backupPassword,effectiveMaster());
+                            attachments().clearAll();
+                        }
+                        toast("กู้คืนสำเร็จ"); home();
+                    }catch(Exception ex){toast("กู้คืนไม่สำเร็จ: "+friendlyRestoreError(ex));}
+                }).show();
+    }
+
+    private boolean isV3Backup(String backup){
+        if(backup==null)return false;
+        String raw=backup.replace("\uFEFF","").replace("\r\n","\n").replace("\r","\n").trim();
+        return raw.startsWith("MPV3\n");
+    }
+
+    private void restoreV3(String backup,String backupPassword)throws Exception{
+        String raw=backup.replace("\uFEFF","").replace("\r\n","\n").replace("\r","\n").trim();
+        String[] x=raw.split("\\n",3);
+        if(x.length<3||!"MPV3".equalsIgnoreCase(x[0].trim())) throw new Exception("รูปแบบ MPV3 ไม่ถูกต้อง");
+        String plain;
+        try{plain=VaultCrypto.decrypt(x[2].trim(),backupPassword,x[1].trim());}
+        catch(Exception ex){throw new Exception("ถอดรหัส Backup ไม่สำเร็จ — ตรวจสอบ Master Password ของ Backup");}
+
+        JSONObject payload=new JSONObject(plain);
+        JSONArray va=payload.getJSONArray("vault");
+        JSONArray aa=payload.optJSONArray("attachments"); if(aa==null)aa=new JSONArray();
+
+        List<VaultStore.Entry> entries=new ArrayList<>();
+        Set<String> ids=new HashSet<>();
+        for(int i=0;i<va.length();i++){
+            JSONObject o=va.getJSONObject(i);
+            VaultStore.Entry e=new VaultStore.Entry(o.optString("id"),o.optString("title"),o.optString("user"),
+                    o.optString("pass"),o.optString("note"),o.optString("category"));
+            if(e.id==null||e.id.isEmpty()) throw new Exception("Backup มีรายการที่ไม่มี ID");
+            entries.add(e);ids.add(e.id);
+        }
+        for(int i=0;i<aa.length();i++){
+            String entryId=aa.getJSONObject(i).optString("entryId");
+            if(!ids.contains(entryId)) throw new Exception("Backup มีไฟล์สำคัญที่ไม่ตรงกับรายการ");
+        }
+
+        String target=effectiveMaster();
+        if(target==null||target.isEmpty()) throw new Exception("กรุณาปลดล็อกแอปใหม่");
+        store.saveEntries(target,entries);
+        attachments().restoreFromBackupArray(target,aa);
     }
 
     private void showLargeNoteEditor(EditText target){
