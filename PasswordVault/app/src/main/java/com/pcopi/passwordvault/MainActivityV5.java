@@ -17,12 +17,14 @@ import java.nio.charset.StandardCharsets;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** V6.0: secure encrypted file attachments, MPV3 backup, stable notes and drag-drop. */
+/** V6.1: secure attachments with reliable export, MPV3 backup, stable notes and drag-drop. */
 public class MainActivityV5 extends MainActivityV4 {
     private boolean editDirty = false;
     private AttachmentStore attachmentStore;
     private String pendingAttachmentEntryId="";
     private AttachmentStore.Meta pendingExportAttachment;
+    private String pendingExportAttachmentId="";
+    private String pendingExportEntryId="";
 
     @Override
     void render(String q) {
@@ -412,10 +414,19 @@ public class MainActivityV5 extends MainActivityV4 {
         dlg.setOnShowListener(x->dlg.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
             String pw=p.getText().toString();
             if(!store.unlock(pw)){p.setError("Master Password ไม่ถูกต้อง");return;}
-            master=pw; pendingExportAttachment=m; dlg.dismiss();
+            master=pw;
+            pendingExportAttachment=m;
+            pendingExportAttachmentId=m.id;
+            pendingExportEntryId=m.entryId;
+            getSharedPreferences("secure_export_state",MODE_PRIVATE).edit()
+                    .putString("attachment_id",m.id)
+                    .putString("entry_id",m.entryId)
+                    .apply();
+            dlg.dismiss();
             Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);
             i.setType(m.mime==null||m.mime.isEmpty()?"application/octet-stream":m.mime);
-            i.addCategory(Intent.CATEGORY_OPENABLE); i.putExtra(Intent.EXTRA_TITLE,m.name);
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            i.putExtra(Intent.EXTRA_TITLE,m.name);
             startActivityForResult(i,21);
         }));
         dlg.show();
@@ -451,10 +462,25 @@ public class MainActivityV5 extends MainActivityV4 {
                 pendingAttachmentEntryId="";
                 if(e!=null) details(e); else home();
             }else if(requestCode==21){
-                if(pendingExportAttachment==null) throw new Exception("ไม่พบไฟล์ที่จะส่งออก");
-                attachments().export(effectiveMaster(),pendingExportAttachment,data.getData());
-                toast("ส่งออกไฟล์สำเร็จ");
+                AttachmentStore.Meta exportMeta=pendingExportAttachment;
+                if(exportMeta==null){
+                    android.content.SharedPreferences ps=getSharedPreferences("secure_export_state",MODE_PRIVATE);
+                    String savedId=ps.getString("attachment_id","");
+                    if(savedId.isEmpty()) savedId=pendingExportAttachmentId;
+                    if(savedId.isEmpty()) throw new Exception("ไม่พบไฟล์ที่จะส่งออก");
+                    exportMeta=attachments().get(effectiveMaster(),savedId);
+                }
+                if(exportMeta==null) throw new Exception("ไม่พบข้อมูลไฟล์ที่จะส่งออก");
+                attachments().export(effectiveMaster(),exportMeta,data.getData());
+                final String exportedName=exportMeta.name;
                 pendingExportAttachment=null;
+                pendingExportAttachmentId="";
+                pendingExportEntryId="";
+                getSharedPreferences("secure_export_state",MODE_PRIVATE).edit().clear().apply();
+                new AlertDialog.Builder(this)
+                        .setTitle("ส่งออกไฟล์สำเร็จ")
+                        .setMessage(exportedName+"\n\nไฟล์ถูกถอดรหัสและบันทึกไปยังตำแหน่งที่คุณเลือกแล้ว")
+                        .setPositiveButton("ตกลง",null).show();
             }else if(requestCode==10){
                 String backup=buildBackupV3();
                 OutputStream raw=getContentResolver().openOutputStream(data.getData());
