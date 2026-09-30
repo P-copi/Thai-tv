@@ -11,7 +11,7 @@ import android.view.View;
 import android.widget.*;
 import java.util.*;
 
-/** V5.5: reliable drag-drop plus long-note editor with persistent scrolling and full-size editing. */
+/** V5.6: stable long-note editing with safe expanded editor and reliable drag-drop. */
 public class MainActivityV5 extends MainActivityV4 {
     private boolean editDirty = false;
 
@@ -159,22 +159,12 @@ public class MainActivityV5 extends MainActivityV4 {
         EditText p=in("Password"); p.setText(e.pass); p.setInputType(129); b.addView(tv("Password",12,MUTED)); b.addView(p,new LinearLayout.LayoutParams(-1,d(52)));
 
         EditText n=in("บันทึกเพิ่มเติม");
-        n.setSingleLine(false); n.setMinLines(7); n.setMaxLines(14);
+        n.setSingleLine(false); n.setMinLines(7); n.setMaxLines(12);
         n.setGravity(Gravity.TOP|Gravity.START);
         n.setVerticalScrollBarEnabled(true);
-        n.setScrollbarFadingEnabled(false);
-        n.setScrollBarStyle(View.SCROLLBARS_INSIDE_INSET);
-        n.setNestedScrollingEnabled(true);
         n.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
         n.setPadding(d(14),d(12),d(14),d(12)); n.setText(e.note);
-        n.setOnTouchListener((v,ev)->{
-            if(ev.getAction()==android.view.MotionEvent.ACTION_DOWN || ev.getAction()==android.view.MotionEvent.ACTION_MOVE)
-                v.getParent().requestDisallowInterceptTouchEvent(true);
-            else if(ev.getAction()==android.view.MotionEvent.ACTION_UP || ev.getAction()==android.view.MotionEvent.ACTION_CANCEL)
-                v.getParent().requestDisallowInterceptTouchEvent(false);
-            return false;
-        });
-        b.addView(tv("บันทึกเพิ่มเติม",12,MUTED)); b.addView(n,new LinearLayout.LayoutParams(-1,d(230)));
+        b.addView(tv("บันทึกเพิ่มเติม",12,MUTED)); b.addView(n,new LinearLayout.LayoutParams(-1,d(220)));
 
         Button expandNote=bt("ขยายแก้ไขบันทึก");
         expandNote.setTextColor(BLUE); expandNote.setBackground(line());
@@ -317,10 +307,7 @@ public class MainActivityV5 extends MainActivityV4 {
         full.setSingleLine(false);
         full.setGravity(Gravity.TOP|Gravity.START);
         full.setVerticalScrollBarEnabled(true);
-        full.setScrollbarFadingEnabled(false);
-        full.setScrollBarStyle(View.SCROLLBARS_INSIDE_INSET);
-        full.setNestedScrollingEnabled(true);
-        full.setOverScrollMode(View.OVER_SCROLL_ALWAYS);
+        full.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
         full.setPadding(d(14),d(14),d(14),d(14));
         full.setText(target.getText());
         full.setSelection(Math.min(target.getSelectionStart()>=0?target.getSelectionStart():full.length(),full.length()));
