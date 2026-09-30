@@ -11,7 +11,7 @@ import android.view.View;
 import android.widget.*;
 import java.util.*;
 
-/** V5.4: reliable whole-list drop target with edge auto-scroll, larger notes, explicit back/lock actions, safe editing. */
+/** V5.5: reliable drag-drop plus long-note editor with persistent scrolling and full-size editing. */
 public class MainActivityV5 extends MainActivityV4 {
     private boolean editDirty = false;
 
@@ -159,10 +159,28 @@ public class MainActivityV5 extends MainActivityV4 {
         EditText p=in("Password"); p.setText(e.pass); p.setInputType(129); b.addView(tv("Password",12,MUTED)); b.addView(p,new LinearLayout.LayoutParams(-1,d(52)));
 
         EditText n=in("บันทึกเพิ่มเติม");
-        n.setSingleLine(false); n.setMinLines(7); n.setMaxLines(12);
-        n.setGravity(Gravity.TOP|Gravity.START); n.setVerticalScrollBarEnabled(true); n.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+        n.setSingleLine(false); n.setMinLines(7); n.setMaxLines(14);
+        n.setGravity(Gravity.TOP|Gravity.START);
+        n.setVerticalScrollBarEnabled(true);
+        n.setScrollbarFadingEnabled(false);
+        n.setScrollBarStyle(View.SCROLLBARS_INSIDE_INSET);
+        n.setNestedScrollingEnabled(true);
+        n.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
         n.setPadding(d(14),d(12),d(14),d(12)); n.setText(e.note);
-        b.addView(tv("บันทึกเพิ่มเติม",12,MUTED)); b.addView(n,new LinearLayout.LayoutParams(-1,d(210)));
+        n.setOnTouchListener((v,ev)->{
+            if(ev.getAction()==android.view.MotionEvent.ACTION_DOWN || ev.getAction()==android.view.MotionEvent.ACTION_MOVE)
+                v.getParent().requestDisallowInterceptTouchEvent(true);
+            else if(ev.getAction()==android.view.MotionEvent.ACTION_UP || ev.getAction()==android.view.MotionEvent.ACTION_CANCEL)
+                v.getParent().requestDisallowInterceptTouchEvent(false);
+            return false;
+        });
+        b.addView(tv("บันทึกเพิ่มเติม",12,MUTED)); b.addView(n,new LinearLayout.LayoutParams(-1,d(230)));
+
+        Button expandNote=bt("ขยายแก้ไขบันทึก");
+        expandNote.setTextColor(BLUE); expandNote.setBackground(line());
+        LinearLayout.LayoutParams enp=new LinearLayout.LayoutParams(-1,d(48)); enp.setMargins(0,d(8),0,d(4));
+        b.addView(expandNote,enp);
+        expandNote.setOnClickListener(v->showLargeNoteEditor(n));
 
         EditText cat=in("เช่น ทั่วไป / อีเมล / ธนาคาร"); cat.setText(e.category);
         b.addView(tv("หมวดหมู่",12,MUTED)); b.addView(cat,new LinearLayout.LayoutParams(-1,d(52)));
@@ -285,6 +303,56 @@ public class MainActivityV5 extends MainActivityV4 {
         note.setPadding(0,d(18),0,0); b.addView(note,new LinearLayout.LayoutParams(-1,d(120)));
 
         addBackLockActions(()->home());
+    }
+
+    private void showLargeNoteEditor(EditText target){
+        LinearLayout box=new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(d(12),d(8),d(12),d(4));
+
+        TextView tip=tv("แตะตำแหน่งที่ต้องการ แล้ววางข้อความได้เลย\nลากแถบด้านขวาเพื่อเลื่อนข้อความยาว",13,MUTED);
+        box.addView(tip,new LinearLayout.LayoutParams(-1,d(52)));
+
+        EditText full=in("บันทึกเพิ่มเติม");
+        full.setSingleLine(false);
+        full.setGravity(Gravity.TOP|Gravity.START);
+        full.setVerticalScrollBarEnabled(true);
+        full.setScrollbarFadingEnabled(false);
+        full.setScrollBarStyle(View.SCROLLBARS_INSIDE_INSET);
+        full.setNestedScrollingEnabled(true);
+        full.setOverScrollMode(View.OVER_SCROLL_ALWAYS);
+        full.setPadding(d(14),d(14),d(14),d(14));
+        full.setText(target.getText());
+        full.setSelection(Math.min(target.getSelectionStart()>=0?target.getSelectionStart():full.length(),full.length()));
+        box.addView(full,new LinearLayout.LayoutParams(-1,d(430)));
+
+        LinearLayout nav=new LinearLayout(this);
+        nav.setOrientation(LinearLayout.HORIZONTAL);
+        Button topBtn=bt("ไปบนสุด"); topBtn.setTextColor(BLUE); topBtn.setBackground(line());
+        Button endBtn=bt("ไปท้ายสุด"); endBtn.setTextColor(BLUE); endBtn.setBackground(line());
+        LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(0,d(46),1); np.setMargins(0,d(8),d(5),0);
+        LinearLayout.LayoutParams ep=new LinearLayout.LayoutParams(0,d(46),1); ep.setMargins(d(5),d(8),0,0);
+        nav.addView(topBtn,np); nav.addView(endBtn,ep); box.addView(nav);
+        topBtn.setOnClickListener(v->{full.requestFocus();full.setSelection(0);full.scrollTo(0,0);});
+        endBtn.setOnClickListener(v->{full.requestFocus();full.setSelection(full.length());full.post(()->full.bringPointIntoView(full.length()));});
+
+        AlertDialog dlg=new AlertDialog.Builder(this)
+                .setTitle("แก้ไขบันทึกเพิ่มเติม")
+                .setView(box)
+                .setNegativeButton("ยกเลิก",null)
+                .setPositiveButton("นำข้อความกลับ",null)
+                .create();
+        dlg.setOnShowListener(x->dlg.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
+            int cursor=Math.max(0,full.getSelectionStart());
+            target.setText(full.getText().toString());
+            target.setSelection(Math.min(cursor,target.length()));
+            target.requestFocus();
+            target.post(()->target.bringPointIntoView(target.getSelectionStart()));
+            dlg.dismiss();
+        }));
+        dlg.show();
+        full.requestFocus();
+        full.post(()->full.bringPointIntoView(full.getSelectionStart()));
     }
 
     private void addBackLockActions(Runnable backAction){
