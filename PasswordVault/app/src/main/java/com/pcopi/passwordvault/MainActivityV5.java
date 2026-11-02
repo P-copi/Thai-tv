@@ -217,10 +217,65 @@ public class MainActivityV5 extends MainActivityV4 {
         field(b,"Password",e.pass,true,true);
 
         b.addView(tv("บันทึกเพิ่มเติม",12,MUTED),new LinearLayout.LayoutParams(-1,d(28)));
+        // Read-only search: keep the search controls above the note, without editing stored data.
+        LinearLayout readSearch=new LinearLayout(this);
+        readSearch.setOrientation(LinearLayout.HORIZONTAL);
+        EditText readQuery=in("ค้นหาในบันทึกเพิ่มเติม");
+        readQuery.setSingleLine(true);
+        readSearch.addView(readQuery,new LinearLayout.LayoutParams(0,d(48),1));
+        Button readPrev=bt("▲"); Button readNext=bt("▼");
+        readSearch.addView(readPrev,new LinearLayout.LayoutParams(d(48),d(48)));
+        readSearch.addView(readNext,new LinearLayout.LayoutParams(d(48),d(48)));
+        b.addView(readSearch,new LinearLayout.LayoutParams(-1,d(48)));
+        TextView readCount=tv("ค้นหาได้โดยไม่ต้องแก้ไข",12,MUTED);
+        b.addView(readCount,new LinearLayout.LayoutParams(-1,d(28)));
         TextView note=tv(e.note==null||e.note.isEmpty()?"-":e.note,15,TEXT);
         note.setGravity(Gravity.TOP|Gravity.START); note.setPadding(d(12),d(12),d(12),d(12));
         note.setBackground(line()); note.setTextIsSelectable(true); note.setMinHeight(d(150));
         b.addView(note,new LinearLayout.LayoutParams(-1,-2));
+        final String originalNote=e.note==null?"":e.note;
+        final java.util.ArrayList<Integer> noteHits=new java.util.ArrayList<>();
+        final int[] noteIndex={-1};
+        final Runnable focusHit=()->{
+            if(noteIndex[0]<0||noteIndex[0]>=noteHits.size())return;
+            int pos=noteHits.get(noteIndex[0]);
+            readCount.setText((noteIndex[0]+1)+" / "+noteHits.size());
+            note.post(()->{
+                android.text.Layout layout=note.getLayout();
+                if(layout!=null){
+                    int line=layout.getLineForOffset(Math.min(pos,note.length()));
+                    int y=note.getTop()+layout.getLineTop(line);
+                    sv.smoothScrollTo(0,Math.max(0,y-d(140)));
+                }
+            });
+        };
+        final Runnable updateRead=()->{
+            noteHits.clear();noteIndex[0]=-1;
+            String key=readQuery.getText().toString();
+            android.text.SpannableString marked=new android.text.SpannableString(originalNote.isEmpty()?"-":originalNote);
+            if(!key.isEmpty()){
+                String hay=originalNote.toLowerCase(java.util.Locale.ROOT);
+                String low=key.toLowerCase(java.util.Locale.ROOT);
+                int at=0;
+                while((at=hay.indexOf(low,at))>=0){
+                    noteHits.add(at);
+                    marked.setSpan(new android.text.style.BackgroundColorSpan(Color.rgb(255,226,112)),at,Math.min(marked.length(),at+key.length()),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    at+=Math.max(1,low.length());
+                }
+            }
+            note.setText(marked,TextView.BufferType.SPANNABLE);
+            if(key.isEmpty())readCount.setText("ค้นหาได้โดยไม่ต้องแก้ไข");
+            else if(noteHits.isEmpty())readCount.setText("ไม่พบข้อความ");
+            else{noteIndex[0]=0;focusHit.run();}
+        };
+        readQuery.addTextChangedListener(new TextWatcher(){
+            public void beforeTextChanged(CharSequence x,int a,int c,int f){}
+            public void onTextChanged(CharSequence x,int a,int before,int count){updateRead.run();}
+            public void afterTextChanged(Editable x){}
+        });
+        readPrev.setOnClickListener(v->{if(!noteHits.isEmpty()){noteIndex[0]=(noteIndex[0]-1+noteHits.size())%noteHits.size();focusHit.run();}});
+        readNext.setOnClickListener(v->{if(!noteHits.isEmpty()){noteIndex[0]=(noteIndex[0]+1)%noteHits.size();focusHit.run();}});
+
 
         addAttachmentSection(b,e);
 
@@ -618,7 +673,6 @@ public class MainActivityV5 extends MainActivityV4 {
         full.setPadding(d(14),d(14),d(14),d(14));
         full.setText(target.getText());
         full.setSelection(Math.min(target.getSelectionStart()>=0?target.getSelectionStart():full.length(),full.length()));
-        box.addView(full,new LinearLayout.LayoutParams(-1,d(430)));
 
         // V6.3: in-note search. Search is transient and never persisted.
         LinearLayout searchBar=new LinearLayout(this);
@@ -632,6 +686,7 @@ public class MainActivityV5 extends MainActivityV4 {
         box.addView(searchBar);
         TextView counter=tv("พิมพ์คำเพื่อค้นหา",12,MUTED);
         box.addView(counter,new LinearLayout.LayoutParams(-1,d(28)));
+        box.addView(full,new LinearLayout.LayoutParams(-1,d(360)));
         final java.util.ArrayList<Integer> hits=new java.util.ArrayList<>();
         final int[] active={-1};
         final Runnable jump=()->{
