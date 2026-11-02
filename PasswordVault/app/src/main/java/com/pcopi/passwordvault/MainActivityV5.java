@@ -217,10 +217,69 @@ public class MainActivityV5 extends MainActivityV4 {
         field(b,"Password",e.pass,true,true);
 
         b.addView(tv("บันทึกเพิ่มเติม",12,MUTED),new LinearLayout.LayoutParams(-1,d(28)));
+        // Read-only search: keep the search controls above the note, without editing stored data.
+        LinearLayout readSearch=new LinearLayout(this);
+        readSearch.setOrientation(LinearLayout.HORIZONTAL);
+        EditText readQuery=in("ค้นหาในบันทึกเพิ่มเติม");
+        readQuery.setSingleLine(true);
+        readSearch.addView(readQuery,new LinearLayout.LayoutParams(0,d(48),1));
+        Button readPrev=bt("▲"); Button readNext=bt("▼");
+        readSearch.addView(readPrev,new LinearLayout.LayoutParams(d(48),d(48)));
+        readSearch.addView(readNext,new LinearLayout.LayoutParams(d(48),d(48)));
+        b.addView(readSearch,new LinearLayout.LayoutParams(-1,d(48)));
+        TextView readCount=tv("ค้นหาได้โดยไม่ต้องแก้ไข",12,MUTED);
+        b.addView(readCount,new LinearLayout.LayoutParams(-1,d(28)));
         TextView note=tv(e.note==null||e.note.isEmpty()?"-":e.note,15,TEXT);
         note.setGravity(Gravity.TOP|Gravity.START); note.setPadding(d(12),d(12),d(12),d(12));
         note.setBackground(line()); note.setTextIsSelectable(true); note.setMinHeight(d(150));
         b.addView(note,new LinearLayout.LayoutParams(-1,-2));
+        final String originalNote=e.note==null?"":e.note;
+        final java.util.ArrayList<Integer> noteHits=new java.util.ArrayList<>();
+        final int[] noteIndex={-1};
+        final Runnable focusHit=()->{
+            if(noteIndex[0]<0||noteIndex[0]>=noteHits.size())return;
+            int pos=noteHits.get(noteIndex[0]);
+            readCount.setText((noteIndex[0]+1)+" / "+noteHits.size());
+            note.post(()->{
+                android.text.Layout layout=note.getLayout();
+                if(layout!=null){
+                    int line=layout.getLineForOffset(Math.min(pos,note.length()));
+                    int[] notePosition=new int[2];
+                    int[] scrollPosition=new int[2];
+                    note.getLocationInWindow(notePosition);
+                    sv.getLocationInWindow(scrollPosition);
+                    int y=sv.getScrollY()+(notePosition[1]-scrollPosition[1])+layout.getLineTop(line);
+                    sv.smoothScrollTo(0,Math.max(0,y-d(96)));
+                }
+            });
+        };
+        final Runnable updateRead=()->{
+            noteHits.clear();noteIndex[0]=-1;
+            String key=readQuery.getText().toString();
+            android.text.SpannableString marked=new android.text.SpannableString(originalNote.isEmpty()?"-":originalNote);
+            if(!key.isEmpty()){
+                String hay=originalNote.toLowerCase(java.util.Locale.ROOT);
+                String low=key.toLowerCase(java.util.Locale.ROOT);
+                int at=0;
+                while((at=hay.indexOf(low,at))>=0){
+                    noteHits.add(at);
+                    marked.setSpan(new android.text.style.BackgroundColorSpan(Color.rgb(255,226,112)),at,Math.min(marked.length(),at+key.length()),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    at+=Math.max(1,low.length());
+                }
+            }
+            note.setText(marked,TextView.BufferType.SPANNABLE);
+            if(key.isEmpty())readCount.setText("ค้นหาได้โดยไม่ต้องแก้ไข");
+            else if(noteHits.isEmpty())readCount.setText("ไม่พบข้อความ");
+            else{noteIndex[0]=0;focusHit.run();}
+        };
+        readQuery.addTextChangedListener(new TextWatcher(){
+            public void beforeTextChanged(CharSequence x,int a,int c,int f){}
+            public void onTextChanged(CharSequence x,int a,int before,int count){updateRead.run();}
+            public void afterTextChanged(Editable x){}
+        });
+        readPrev.setOnClickListener(v->{if(!noteHits.isEmpty()){noteIndex[0]=(noteIndex[0]-1+noteHits.size())%noteHits.size();focusHit.run();}});
+        readNext.setOnClickListener(v->{if(!noteHits.isEmpty()){noteIndex[0]=(noteIndex[0]+1)%noteHits.size();focusHit.run();}});
+
 
         addAttachmentSection(b,e);
 
@@ -618,7 +677,56 @@ public class MainActivityV5 extends MainActivityV4 {
         full.setPadding(d(14),d(14),d(14),d(14));
         full.setText(target.getText());
         full.setSelection(Math.min(target.getSelectionStart()>=0?target.getSelectionStart():full.length(),full.length()));
-        box.addView(full,new LinearLayout.LayoutParams(-1,d(430)));
+
+        // V6.3: in-note search. Search is transient and never persisted.
+        LinearLayout searchBar=new LinearLayout(this);
+        searchBar.setOrientation(LinearLayout.HORIZONTAL);
+        EditText find=in("ค้นหาในบันทึก");
+        find.setSingleLine(true);
+        searchBar.addView(find,new LinearLayout.LayoutParams(0,d(48),1));
+        Button prev=bt("▲"); Button next=bt("▼");
+        searchBar.addView(prev,new LinearLayout.LayoutParams(d(48),d(48)));
+        searchBar.addView(next,new LinearLayout.LayoutParams(d(48),d(48)));
+        box.addView(searchBar);
+        TextView counter=tv("พิมพ์คำเพื่อค้นหา",12,MUTED);
+        box.addView(counter,new LinearLayout.LayoutParams(-1,d(28)));
+        box.addView(full,new LinearLayout.LayoutParams(-1,d(360)));
+        final java.util.ArrayList<Integer> hits=new java.util.ArrayList<>();
+        final int[] active={-1};
+        final Runnable jump=()->{
+            if(active[0]<0||active[0]>=hits.size())return;
+            int start=hits.get(active[0]);
+            int end=Math.min(full.length(),start+find.getText().length());
+            full.requestFocus();
+            full.setSelection(start,end);
+            full.post(()->full.bringPointIntoView(start));
+            counter.setText((active[0]+1)+" / "+hits.size());
+        };
+        final Runnable scan=()->{
+            hits.clear(); active[0]=-1;
+            String term=find.getText().toString();
+            if(term.isEmpty()){counter.setText("พิมพ์คำเพื่อค้นหา");return;}
+            String body=full.getText().toString().toLowerCase(java.util.Locale.ROOT);
+            String key=term.toLowerCase(java.util.Locale.ROOT);
+            int at=0;
+            while((at=body.indexOf(key,at))>=0){hits.add(at);at+=Math.max(1,key.length());}
+            counter.setText(hits.isEmpty()?"ไม่พบข้อความ":"พบ "+hits.size()+" ตำแหน่ง");
+            if(!hits.isEmpty()){active[0]=0;jump.run();}
+        };
+        find.addTextChangedListener(new TextWatcher(){
+            public void beforeTextChanged(CharSequence x,int a,int c,int f){}
+            public void onTextChanged(CharSequence x,int a,int before,int count){scan.run();}
+            public void afterTextChanged(Editable x){}
+        });
+        full.addTextChangedListener(new TextWatcher(){
+            public void beforeTextChanged(CharSequence x,int a,int c,int f){}
+            public void onTextChanged(CharSequence x,int a,int before,int count){
+                if(!find.getText().toString().isEmpty())scan.run();
+            }
+            public void afterTextChanged(Editable x){}
+        });
+        prev.setOnClickListener(v->{if(!hits.isEmpty()){active[0]=(active[0]-1+hits.size())%hits.size();jump.run();}});
+        next.setOnClickListener(v->{if(!hits.isEmpty()){active[0]=(active[0]+1)%hits.size();jump.run();}});
 
         LinearLayout nav=new LinearLayout(this);
         nav.setOrientation(LinearLayout.HORIZONTAL);
