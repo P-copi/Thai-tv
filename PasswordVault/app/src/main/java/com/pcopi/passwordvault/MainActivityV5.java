@@ -244,8 +244,12 @@ public class MainActivityV5 extends MainActivityV4 {
                 android.text.Layout layout=note.getLayout();
                 if(layout!=null){
                     int line=layout.getLineForOffset(Math.min(pos,note.length()));
-                    int y=note.getTop()+layout.getLineTop(line);
-                    sv.smoothScrollTo(0,Math.max(0,y-d(140)));
+                    int[] notePosition=new int[2];
+                    int[] scrollPosition=new int[2];
+                    note.getLocationInWindow(notePosition);
+                    sv.getLocationInWindow(scrollPosition);
+                    int y=sv.getScrollY()+(notePosition[1]-scrollPosition[1])+layout.getLineTop(line);
+                    sv.smoothScrollTo(0,Math.max(0,y-d(96)));
                 }
             });
         };
