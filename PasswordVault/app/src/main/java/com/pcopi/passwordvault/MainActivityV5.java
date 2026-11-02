@@ -620,6 +620,55 @@ public class MainActivityV5 extends MainActivityV4 {
         full.setSelection(Math.min(target.getSelectionStart()>=0?target.getSelectionStart():full.length(),full.length()));
         box.addView(full,new LinearLayout.LayoutParams(-1,d(430)));
 
+        // V6.3: in-note search. Search is transient and never persisted.
+        LinearLayout searchBar=new LinearLayout(this);
+        searchBar.setOrientation(LinearLayout.HORIZONTAL);
+        EditText find=in("ค้นหาในบันทึก");
+        find.setSingleLine(true);
+        searchBar.addView(find,new LinearLayout.LayoutParams(0,d(48),1));
+        Button prev=bt("▲"); Button next=bt("▼");
+        searchBar.addView(prev,new LinearLayout.LayoutParams(d(48),d(48)));
+        searchBar.addView(next,new LinearLayout.LayoutParams(d(48),d(48)));
+        box.addView(searchBar);
+        TextView counter=tv("พิมพ์คำเพื่อค้นหา",12,MUTED);
+        box.addView(counter,new LinearLayout.LayoutParams(-1,d(28)));
+        final java.util.ArrayList<Integer> hits=new java.util.ArrayList<>();
+        final int[] active={-1};
+        final Runnable jump=()->{
+            if(active[0]<0||active[0]>=hits.size())return;
+            int start=hits.get(active[0]);
+            int end=Math.min(full.length(),start+find.getText().length());
+            full.requestFocus();
+            full.setSelection(start,end);
+            full.post(()->full.bringPointIntoView(start));
+            counter.setText((active[0]+1)+" / "+hits.size());
+        };
+        final Runnable scan=()->{
+            hits.clear(); active[0]=-1;
+            String term=find.getText().toString();
+            if(term.isEmpty()){counter.setText("พิมพ์คำเพื่อค้นหา");return;}
+            String body=full.getText().toString().toLowerCase(java.util.Locale.ROOT);
+            String key=term.toLowerCase(java.util.Locale.ROOT);
+            int at=0;
+            while((at=body.indexOf(key,at))>=0){hits.add(at);at+=Math.max(1,key.length());}
+            counter.setText(hits.isEmpty()?"ไม่พบข้อความ":"พบ "+hits.size()+" ตำแหน่ง");
+            if(!hits.isEmpty()){active[0]=0;jump.run();}
+        };
+        find.addTextChangedListener(new TextWatcher(){
+            public void beforeTextChanged(CharSequence x,int a,int c,int f){}
+            public void onTextChanged(CharSequence x,int a,int before,int count){scan.run();}
+            public void afterTextChanged(Editable x){}
+        });
+        full.addTextChangedListener(new TextWatcher(){
+            public void beforeTextChanged(CharSequence x,int a,int c,int f){}
+            public void onTextChanged(CharSequence x,int a,int before,int count){
+                if(!find.getText().toString().isEmpty())scan.run();
+            }
+            public void afterTextChanged(Editable x){}
+        });
+        prev.setOnClickListener(v->{if(!hits.isEmpty()){active[0]=(active[0]-1+hits.size())%hits.size();jump.run();}});
+        next.setOnClickListener(v->{if(!hits.isEmpty()){active[0]=(active[0]+1)%hits.size();jump.run();}});
+
         LinearLayout nav=new LinearLayout(this);
         nav.setOrientation(LinearLayout.HORIZONTAL);
         Button topBtn=bt("ไปบนสุด"); topBtn.setTextColor(BLUE); topBtn.setBackground(line());
